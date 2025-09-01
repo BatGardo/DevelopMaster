@@ -1,25 +1,26 @@
 <?php
 
-use App\Livewire\Settings\Appearance;
-use App\Livewire\Settings\Password;
-use App\Livewire\Settings\Profile;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\AuthController;
 
-Route::get('/', function () {
-    return view('welcome');
-})->name('home');
+Route::get('/', [HomeController::class, 'index'])->name('home');
 
-Route::view('dashboard', 'dashboard')
-    ->middleware(['auth', 'verified'])
-    ->name('dashboard');
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [AuthController::class, 'showLogin'])->name('login.form');
+    Route::post('/login', [AuthController::class, 'login'])->name('login');
 
-Route::middleware(['auth'])->group(function () {
-    Route::redirect('settings', 'settings/profile');
-
-    Route::get('settings/profile', Profile::class)->name('settings.profile');
-    Route::get('settings/password', Password::class)->name('settings.password');
-    Route::get('settings/appearance', Appearance::class)->name('settings.appearance');
-    //Route::view('login', 'login')->name('login');
+    Route::get('/register', [AuthController::class, 'showRegister'])->name('register.form');
+    Route::post('/register', [AuthController::class, 'register'])->name('register');
 });
 
-require __DIR__.'/auth.php';
+Route::middleware('auth')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+    // Приклади захищених сторінок під АСВП
+    Route::get('/dashboard', [HomeController::class, 'dashboard'])->name('dashboard');
+    Route::get('/cases', [HomeController::class, 'cases'])->name('cases.index');
+    Route::get('/analytics', [HomeController::class, 'analytics'])->name('analytics.index');
+    Route::get('/notifications', [HomeController::class, 'notifications'])->name('notifications.index');
+    Route::get('/profile', [HomeController::class, 'profile'])->name('profile.index');
+});

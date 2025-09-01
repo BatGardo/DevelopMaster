@@ -1,18 +1,18 @@
-<x-layouts.app :title="__('Dashboard')">
-    <div class="flex h-full w-full flex-1 flex-col gap-4 rounded-xl">
-        <div class="grid auto-rows-min gap-4 md:grid-cols-3">
-            <div class="relative aspect-video overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700">
-                <x-placeholder-pattern class="absolute inset-0 size-full stroke-gray-900/20 dark:stroke-neutral-100/20" />
-            </div>
-            <div class="relative aspect-video overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700">
-                <x-placeholder-pattern class="absolute inset-0 size-full stroke-gray-900/20 dark:stroke-neutral-100/20" />
-            </div>
-            <div class="relative aspect-video overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700">
-                <x-placeholder-pattern class="absolute inset-0 size-full stroke-gray-900/20 dark:stroke-neutral-100/20" />
-            </div>
-        </div>
-        <div class="relative h-full flex-1 overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700">
-            <x-placeholder-pattern class="absolute inset-0 size-full stroke-gray-900/20 dark:stroke-neutral-100/20" />
-        </div>
-    </div>
-</x-layouts.app>
+@extends('layouts.app')
+
+@section('content')
+<div class="grid md:grid-cols-3 gap-4">
+  <div class="bg-white p-4 rounded shadow">
+    <p class="text-sm text-slate-500">Користувачів</p>
+    <p class="text-2xl font-bold">{{ $stats['users'] }}</p>
+  </div>
+  <div class="bg-white p-4 rounded shadow">
+    <p class="text-sm text-slate-500">Постів</p>
+    <p class="text-2xl font-bold">{{ $stats['posts'] }}</p>
+  </div>
+  <div class="bg-white p-4 rounded shadow">
+    <p class="text-sm text-slate-500">Стан системи</p>
+    <p class="text-2xl font-bold text-emerald-600">OK</p>
+  </div>
+</div>
+@endsection
