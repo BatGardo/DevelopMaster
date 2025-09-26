@@ -25,5 +25,6 @@ class DatabaseSeeder extends Seeder
         Post::factory()->count(5)->create([
             'user_id' => $admin->id,
         ]);
+        $this->call(PositionSeeder::class);
     }
 }

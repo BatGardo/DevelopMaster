@@ -43,7 +43,7 @@
   </main>
 
   <footer class="footer center">
-    © {{ date('Y') }} DevelopMaster • зроблено з ♥
+    © {{ date('Y') }} Develop by • Столярчук Артем
   </footer>
 </body>
 </html>

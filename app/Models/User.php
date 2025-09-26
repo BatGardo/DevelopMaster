@@ -17,4 +17,16 @@ class User extends Authenticatable
     {
         return $this->hasMany(Post::class);
     }
+
+    // ...
+    public function casesOwned() { return $this->hasMany(CaseModel::class,'user_id'); }
+    public function casesAssigned() { return $this->hasMany(CaseModel::class,'executor_id'); }
+
+    public function isAdmin()    { return $this->role === 'admin'; }
+    public function isExecutor() { return $this->role === 'executor'; }
+    public function isViewer()   { return $this->role === 'viewer'; }
+    public function isApplicant(){ return $this->role === 'applicant'; }
+
 }
+
+
