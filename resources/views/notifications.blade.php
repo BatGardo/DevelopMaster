@@ -1,17 +1,15 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="bg-white p-6 rounded shadow">
-  <h1 class="text-xl font-bold mb-4">Сповіщення</h1>
-  <ul class="space-y-2">
-    @forelse($notifications as $n)
-      <li class="border rounded p-3">
-        <div class="font-medium">{{ $n['message'] }}</div>
-        <div class="text-xs text-slate-500">{{ $n['at']->format('Y-m-d H:i') }}</div>
-      </li>
-    @empty
-      <li class="text-slate-500">Немає сповіщень</li>
-    @endforelse
-  </ul>
+<h2 class="mb-16">Сповіщення</h2>
+<div class="card">
+  @forelse($notifications as $n)
+    <div class="alert alert-warn mb-8">
+      <strong>{{ $n['message'] }}</strong>
+      <div class="help">отримано: {{ $n['at']->format('Y-m-d H:i') }}</div>
+    </div>
+  @empty
+    <div class="help">Немає сповіщень</div>
+  @endforelse
 </div>
 @endsection

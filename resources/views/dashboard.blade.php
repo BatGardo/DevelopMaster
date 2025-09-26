@@ -1,18 +1,19 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="grid md:grid-cols-3 gap-4">
-  <div class="bg-white p-4 rounded shadow">
-    <p class="text-sm text-slate-500">Користувачів</p>
-    <p class="text-2xl font-bold">{{ $stats['users'] }}</p>
+<h2 class="mb-16">Панель</h2>
+<div class="grid grid-3">
+  <div class="kpi">
+    <div class="label">Користувачів</div>
+    <div class="value">{{ $stats['users'] }}</div>
   </div>
-  <div class="bg-white p-4 rounded shadow">
-    <p class="text-sm text-slate-500">Постів</p>
-    <p class="text-2xl font-bold">{{ $stats['posts'] }}</p>
+  <div class="kpi">
+    <div class="label">Постів</div>
+    <div class="value">{{ $stats['posts'] }}</div>
   </div>
-  <div class="bg-white p-4 rounded shadow">
-    <p class="text-sm text-slate-500">Стан системи</p>
-    <p class="text-2xl font-bold text-emerald-600">OK</p>
+  <div class="kpi">
+    <div class="label">Стан системи</div>
+    <div class="value" style="color:var(--ok)">ОК</div>
   </div>
 </div>
 @endsection

@@ -1,34 +1,36 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="max-w-md mx-auto bg-white p-6 rounded shadow">
-  <h1 class="text-xl font-bold mb-4">Реєстрація</h1>
+<div class="card" style="max-width:560px;margin:0 auto">
+  <h2 class="mb-16 center">Реєстрація</h2>
   <form method="POST" action="{{ route('register') }}">
     @csrf
-    <div class="mb-3">
-      <label class="block mb-1">Ім’я</label>
-      <input type="text" name="name" value="{{ old('name') }}" required class="w-full border rounded px-3 py-2">
-      @error('name') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
+    <div class="grid grid-2">
+      <div class="field">
+        <label class="label">Ім’я</label>
+        <input class="input" name="name" value="{{ old('name') }}" required>
+        @error('name') <div class="help" style="color:var(--danger)">{{ $message }}</div> @enderror
+      </div>
+      <div class="field">
+        <label class="label">Email</label>
+        <input class="input" type="email" name="email" value="{{ old('email') }}" required>
+        @error('email') <div class="help" style="color:var(--danger)">{{ $message }}</div> @enderror
+      </div>
     </div>
-    <div class="mb-3">
-      <label class="block mb-1">Email</label>
-      <input type="email" name="email" value="{{ old('email') }}" required class="w-full border rounded px-3 py-2">
-      @error('email') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
+    <div class="grid grid-2">
+      <div class="field">
+        <label class="label">Пароль</label>
+        <input class="input" type="password" name="password" required>
+      </div>
+      <div class="field">
+        <label class="label">Підтвердження</label>
+        <input class="input" type="password" name="password_confirmation" required>
+      </div>
     </div>
-    <div class="mb-3">
-      <label class="block mb-1">Пароль</label>
-      <input type="password" name="password" required class="w-full border rounded px-3 py-2">
-    </div>
-    <div class="mb-4">
-      <label class="block mb-1">Підтвердження пароля</label>
-      <input type="password" name="password_confirmation" required class="w-full border rounded px-3 py-2">
-      @error('password') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
-    </div>
-    <div class="flex justify-between items-center">
-      <a class="text-slate-600" href="{{ route('login.form') }}">Увійти</a>
-      <button class="bg-slate-800 text-white px-4 py-2 rounded">Зареєструватися</button>
+    <div class="center">
+      <button class="btn btn-primary">Зареєструватися</button>
+      <a class="btn" style="margin-left:10px;border:1px solid #cbd5e1" href="{{ route('login.form') }}">Увійти</a>
     </div>
   </form>
 </div>
 @endsection
-
