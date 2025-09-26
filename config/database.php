@@ -82,19 +82,19 @@ return [
             ]) : [],
         ],
 
-        'pgsql' => [
-            'driver' => 'pgsql',
-            'url' => env('DB_URL'),
-            'host' => env('DB_HOST', '127.0.0.1'),
-            'port' => env('DB_PORT', '5432'),
-            'database' => env('DB_DATABASE', 'laravel'),
-            'username' => env('DB_USERNAME', 'root'),
-            'password' => env('DB_PASSWORD', ''),
-            'charset' => env('DB_CHARSET', 'utf8'),
+        'olap' => [
+            'driver' => env('OLAP_DB_CONNECTION', 'pgsql'),
+            'url' => env('OLAP_DB_URL'),
+            'host' => env('OLAP_DB_HOST', '127.0.0.1'),
+            'port' => env('OLAP_DB_PORT', '5432'),
+            'database' => env('OLAP_DB_DATABASE', 'developmaster_olap'),
+            'username' => env('OLAP_DB_USERNAME', 'olap_user'),
+            'password' => env('OLAP_DB_PASSWORD', ''),
+            'charset' => env('OLAP_DB_CHARSET', 'utf8'),
             'prefix' => '',
             'prefix_indexes' => true,
-            'search_path' => 'public',
-            'sslmode' => 'prefer',
+            'schema' => env('OLAP_DB_SCHEMA', 'public'),
+            'sslmode' => env('OLAP_DB_SSLMODE', 'prefer'),
         ],
 
         'sqlsrv' => [
@@ -172,3 +172,9 @@ return [
     ],
 
 ];
+
+
+
+
+
+
