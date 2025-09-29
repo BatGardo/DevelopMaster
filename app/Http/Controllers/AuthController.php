@@ -30,7 +30,7 @@ class AuthController extends Controller
 
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
             return back()
-                ->withErrors(['email' => __('�?��?�-�?�?�- �?�+�>�-��?�?�- �?���?�-')])
+                ->withErrors(['email' => __('These credentials do not match our records.')])
                 ->withInput();
         }
 
@@ -70,3 +70,4 @@ class AuthController extends Controller
         return redirect()->route('home');
     }
 }
+

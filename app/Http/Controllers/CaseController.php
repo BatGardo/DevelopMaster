@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\CaseModel;
 use App\Models\CaseAction;
 use App\Models\CaseDocument;
+use App\Models\CaseModel;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -14,121 +14,159 @@ class CaseController extends Controller
 {
     public function index(Request $request)
     {
-        //$this->authorize('manage-cases');
+        Gate::authorize('list-cases');
 
-        $sort = $request->query('sort','created_at');
-        $direction = $request->query('direction','desc');
+        $sort = $request->query('sort', 'created_at');
+        $direction = $request->query('direction', 'desc');
 
-        $query = CaseModel::with(['owner','executor']);
+        $query = CaseModel::with(['owner', 'executor']);
 
-        // фільтур за виконавцем/статусом/діапазоном дат
-        if ($exec = $request->query('executor')) $query->where('executor_id',$exec);
-        if ($status = $request->query('status')) $query->where('status',$status);
+        if ($request->user()->isExecutor()) {
+            $query->where('executor_id', $request->user()->id);
+        }
 
-        $cases = $query->orderBy($sort,$direction)->paginate(10)->withQueryString();
-        $executors = User::whereIn('role',['executor','admin'])->orderBy('name')->get();
+        if ($executor = $request->query('executor')) {
+            $query->where('executor_id', $executor);
+        }
 
-        return view('cases.index', compact('cases','sort','direction','executors'));
+        if ($status = $request->query('status')) {
+            $query->where('status', $status);
+        }
+
+        $cases = $query->orderBy($sort, $direction)->paginate(12)->withQueryString();
+        $executors = User::whereIn('role', ['executor', 'admin'])->orderBy('name')->get();
+
+        return view('cases.index', compact('cases', 'sort', 'direction', 'executors'));
     }
 
-    public function create()
+    public function mine(Request $request)
     {
-        //$this->authorize('manage-cases');
-        $executors = User::whereIn('role',['executor','admin'])->orderBy('name')->get();
+        $user = $request->user();
+
+        if ($user->isAdmin() || $user->isExecutor()) {
+            return redirect()->route('cases.index');
+        }
+
+        $query = CaseModel::with(['executor', 'owner'])
+            ->orderByDesc('created_at');
+
+        if ($user->isApplicant()) {
+            $query->where('user_id', $user->id);
+        } elseif ($user->isViewer()) {
+            // viewers can see everything but in read-only mode
+        }
+
+        $cases = $query->paginate(12)->withQueryString();
+
+        return view('cases.mine', compact('cases'));
+    }
+
+    public function create(Request $request)
+    {
+        Gate::authorize('create-case');
+
+        $executors = User::whereIn('role', ['executor', 'admin'])->orderBy('name')->get();
+
         return view('cases.create', compact('executors'));
     }
 
     public function store(Request $request)
     {
-        //$this->authorize('manage-cases');
+        Gate::authorize('create-case');
+
         $data = $request->validate([
-            'title'=>'required|string|max:255',
-            'description'=>'nullable|string',
-            'executor_id'=>'nullable|exists:users,id',
-            'claimant_name'=>'nullable|string|max:255',
-            'debtor_name'=>'nullable|string|max:255',
-            'deadline_at'=>'nullable|date'
+            'title' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'executor_id' => ['nullable', 'exists:users,id'],
+            'claimant_name' => ['nullable', 'string', 'max:255'],
+            'debtor_name' => ['nullable', 'string', 'max:255'],
+            'deadline_at' => ['nullable', 'date'],
         ]);
 
         $data['user_id'] = $request->user()->id;
+        $data['status'] = 'new';
 
         $case = CaseModel::create($data);
 
         CaseAction::create([
-            'case_id'=>$case->id,
-            'user_id'=>$request->user()->id,
-            'type'=>'created',
-            'notes'=>'Створено справу'
+            'case_id' => $case->id,
+            'user_id' => $request->user()->id,
+            'type' => 'created',
+            'notes' => __('Case created'),
         ]);
 
-        // Якщо є завантажені документи
         if ($request->hasFile('documents')) {
             foreach ($request->file('documents') as $file) {
                 $path = $file->store('cases/'.$case->id, 'public');
                 CaseDocument::create([
-                    'case_id'=>$case->id,
-                    'uploaded_by'=>$request->user()->id,
-                    'title'=>$file->getClientOriginalName(),
-                    'path'=>$path
+                    'case_id' => $case->id,
+                    'uploaded_by' => $request->user()->id,
+                    'title' => $file->getClientOriginalName(),
+                    'path' => $path,
                 ]);
+
                 CaseAction::create([
-                    'case_id'=>$case->id,
-                    'user_id'=>$request->user()->id,
-                    'type'=>'document_added',
-                    'notes'=>$file->getClientOriginalName()
+                    'case_id' => $case->id,
+                    'user_id' => $request->user()->id,
+                    'type' => 'document_added',
+                    'notes' => $file->getClientOriginalName(),
                 ]);
             }
         }
 
-        // просте внутрішнє повідомлення (можеш замінити на свою Notification-модель/таблицю)
-        session()->flash('ok','Справу створено');
-        return redirect()->route('cases.show',$case);
+        return redirect()->route('cases.show', $case)->with('ok', __('Case created successfully.'));
     }
 
-    public function show(CaseModel $case)
+    public function show(Request $request, CaseModel $case)
     {
-        //Gate::authorize('view-case',$case);
+        Gate::authorize('view-case', $case);
 
-        $case->load(['owner','executor','actions.user','documents.uploader']);
-        return view('cases.show', compact('case'));
+        $case->load(['owner', 'executor', 'actions.user', 'documents.uploader']);
+
+        $canUpdate = Gate::forUser($request->user())->check('update-case', $case);
+
+        return view('cases.show', compact('case', 'canUpdate'));
     }
 
-    // додавання дії з екрану справи
     public function addAction(Request $request, CaseModel $case)
     {
-        //Gate::authorize('view-case',$case);
+        Gate::authorize('update-case', $case);
+
         $data = $request->validate([
-            'type'=>'required|string|max:50',
-            'notes'=>'nullable|string'
+            'type' => ['required', 'string', 'max:50'],
+            'notes' => ['nullable', 'string'],
         ]);
-        $data['case_id']=$case->id;
-        $data['user_id']=$request->user()->id;
+
+        $data['case_id'] = $case->id;
+        $data['user_id'] = $request->user()->id;
 
         CaseAction::create($data);
 
-        return back()->with('ok','Дію додано');
+        return back()->with('ok', __('Action added successfully.'));
     }
 
-    // завантаження документів з екрану справи
     public function uploadDocument(Request $request, CaseModel $case)
     {
-        //Gate::authorize('view-case',$case);
+        Gate::authorize('update-case', $case);
 
-        $request->validate(['file'=>'required|file|max:20480']);
-        $path = $request->file('file')->store('cases/'.$case->id,'public');
+        $request->validate(['file' => ['required', 'file', 'max:20480']]);
+
+        $path = $request->file('file')->store('cases/'.$case->id, 'public');
 
         CaseDocument::create([
-            'case_id'=>$case->id,
-            'uploaded_by'=>$request->user()->id,
-            'title'=>$request->file('file')->getClientOriginalName(),
-            'path'=>$path
+            'case_id' => $case->id,
+            'uploaded_by' => $request->user()->id,
+            'title' => $request->file('file')->getClientOriginalName(),
+            'path' => $path,
         ]);
 
         CaseAction::create([
-            'case_id'=>$case->id,'user_id'=>$request->user()->id,
-            'type'=>'document_added','notes'=>$request->file('file')->getClientOriginalName()
+            'case_id' => $case->id,
+            'user_id' => $request->user()->id,
+            'type' => 'document_added',
+            'notes' => $request->file('file')->getClientOriginalName(),
         ]);
 
-        return back()->with('ok','Документ збережено');
+        return back()->with('ok', __('Document uploaded successfully.'));
     }
 }

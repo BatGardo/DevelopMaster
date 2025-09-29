@@ -1,11 +1,11 @@
-<?php
+﻿<?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\HomeController;
+use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CaseController;
-use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PositionController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
@@ -20,12 +20,10 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-    // ✅ доступні всім авторизованим
     Route::get('/dashboard', [HomeController::class, 'dashboard'])->name('dashboard');
     Route::get('/notifications', [HomeController::class, 'notifications'])->name('notifications.index');
     Route::get('/profile', [HomeController::class, 'profile'])->name('profile.index');
 
-    // 📚 Позиції — лише адміністратор
     Route::middleware('role:admin')->group(function () {
         Route::get('/positions', [PositionController::class, 'index'])->name('positions.index');
         Route::get('/positions/create', [PositionController::class, 'create'])->name('positions.create');
@@ -35,26 +33,31 @@ Route::middleware('auth')->group(function () {
         Route::delete('/positions/{position}', [PositionController::class, 'destroy'])->name('positions.destroy');
     });
 
-    // 📁 Справи
-    // список/реєстр — admin, executor
-    Route::get('/cases', [CaseController::class, 'index'])
+    Route::middleware('role:admin,executor')->group(function () {
+        Route::get('/cases', [CaseController::class, 'index'])->name('cases.index');
+    });
+
+    Route::middleware('role:admin,executor,applicant')->group(function () {
+        Route::get('/cases/create', [CaseController::class, 'create'])->name('cases.create');
+        Route::post('/cases', [CaseController::class, 'store'])->name('cases.store');
+    });
+
+    Route::get('/cases/my', [CaseController::class, 'mine'])
+        ->middleware('role:admin,executor,viewer,applicant')
+        ->name('cases.mine');
+
+    Route::get('/cases/{case}', [CaseController::class, 'show'])
+        ->middleware('role:admin,executor,viewer,applicant')
+        ->name('cases.show');
+    Route::post('/cases/{case}/actions', [CaseController::class, 'addAction'])
         ->middleware('role:admin,executor')
-        ->name('cases.index');
+        ->name('cases.actions.store');
+    Route::post('/cases/{case}/upload', [CaseController::class, 'uploadDocument'])
+        ->middleware('role:admin,executor')
+        ->name('cases.documents.store');
 
-    // створення — admin, executor, applicant
-    Route::get('/cases/create', [CaseController::class, 'create'])
-        ->middleware('role:admin,executor,applicant')
-        ->name('cases.create');
-    Route::post('/cases', [CaseController::class, 'store'])
-        ->middleware('role:admin,executor,applicant')
-        ->name('cases.store');
-
-    // перегляд конкретної справи та операції — Gate перевіряється в контролері
-    Route::get('/cases/{case}', [CaseController::class, 'show'])->name('cases.show');
-    Route::post('/cases/{case}/actions', [CaseController::class, 'addAction'])->name('cases.actions.store');
-    Route::post('/cases/{case}/upload', [CaseController::class, 'uploadDocument'])->name('cases.documents.store');
-
-Route::get('/analytics', [\App\Http\Controllers\AnalyticsController::class, 'index'])
-    ->middleware(['auth','can:view-analytics'])
-    ->name('analytics.index');
+    Route::get('/analytics', [AnalyticsController::class, 'index'])
+        ->middleware('can:view-analytics')
+        ->name('analytics.index');
 });
+
