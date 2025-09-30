@@ -1,4 +1,4 @@
-п»ї@extends('layouts.app')
+@extends('layouts.app')
 
 @php use Illuminate\Support\Str; @endphp
 

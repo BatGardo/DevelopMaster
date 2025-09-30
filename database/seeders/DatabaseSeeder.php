@@ -68,5 +68,6 @@ class DatabaseSeeder extends Seeder
         });
 
         $this->call(UkrainianCaseSeeder::class);
+        $this->call(AdditionalUkrainianCasesSeeder::class);
     }
 }

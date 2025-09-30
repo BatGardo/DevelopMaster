@@ -1,4 +1,4 @@
-ï»¿@extends('layouts.app')
+@extends('layouts.app')
 
 @php use Illuminate\Support\Str; @endphp
 
@@ -11,13 +11,13 @@
     <div class="card">
       <div class="flex justify-between items-center mb-12">
         <h3 class="m-0">{{ $case->title }}</h3>
-        <a class="btn btn-ghost" href="{{ route('cases.export.pdf', $case) }}" target="_blank">{{ __('Export PDF') }}</a>
+        <a class="btn btn-primary" href="{{ route('cases.export.pdf', $case) }}" target="_blank">{{ __('Export PDF') }}</a>
       </div>
       <p class="mb-8"><b>{{ __('Status') }}:</b> <span class="badge">{{ $case->status_label }}</span></p>
-      <p class="mb-8"><b>{{ __('Claimant') }}:</b> {{ $case->claimant_name ?? 'â€”' }}</p>
-      <p class="mb-8"><b>{{ __('Debtor') }}:</b> {{ $case->debtor_name ?? 'â€”' }}</p>
+      <p class="mb-8"><b>{{ __('Claimant') }}:</b> {{ $case->claimant_name ?? '—' }}</p>
+      <p class="mb-8"><b>{{ __('Debtor') }}:</b> {{ $case->debtor_name ?? '—' }}</p>
       <p class="mb-8"><b>{{ __('Executor') }}:</b> {{ $case->executor?->name ?? __('Unassigned') }}</p>
-      <p class="mb-8"><b>{{ __('Deadline') }}:</b> {{ $case->deadline_at?->format('Y-m-d') ?? 'â€”' }}</p>
+      <p class="mb-8"><b>{{ __('Deadline') }}:</b> {{ $case->deadline_at?->format('Y-m-d') ?? '—' }}</p>
       <p class="mb-8"><b>{{ __('Description') }}:</b> {!! nl2br(e($case->description)) !!}</p>
     </div>
 
@@ -62,9 +62,9 @@
     <ul class="timeline">
       @forelse($case->actions as $action)
         <li>
-          <div class="timeline-date">{{ optional($action->created_at)->format('d.m H:i') ?? 'â€”' }}</div>
+          <div class="timeline-date">{{ optional($action->created_at)->format('d.m H:i') ?? '—' }}</div>
           <div class="timeline-content">
-            <strong>{{ $action->type_label }}</strong> â€” {{ $action->notes ?? __('No comment') }}
+            <strong>{{ $action->type_label }}</strong> — {{ $action->notes ?? __('No comment') }}
             <div class="help">{{ __('Performed by') }}: {{ $action->user?->name ?? __('System') }}</div>
           </div>
         </li>
@@ -95,10 +95,10 @@
         @foreach($case->documents as $document)
           <tr>
             <td>{{ $document->title }}</td>
-            <td>{{ $document->human_size ?? 'â€”' }}</td>
+            <td>{{ $document->human_size ?? '—' }}</td>
             <td>{{ $document->mime_type ?? __('Unknown') }}</td>
-            <td>{{ $document->uploader?->name ?? 'â€”' }}</td>
-            <td>{{ $document->created_at?->format('Y-m-d H:i') ?? 'â€”' }}</td>
+            <td>{{ $document->uploader?->name ?? '—' }}</td>
+            <td>{{ $document->created_at?->format('Y-m-d H:i') ?? '—' }}</td>
             <td class="flex gap-2">
               <a class="btn btn-ghost" href="{{ route('cases.documents.download', [$case, $document]) }}">{{ __('Download') }}</a>
               @if($canUpdate)

@@ -1,4 +1,4 @@
-РїВ»С—<?php
+﻿<?php
 
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AuthController;

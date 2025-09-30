@@ -1,4 +1,4 @@
-п»ї@extends('layouts.app')
+@extends('layouts.app')
 
 @section('content')
   <h2 class="mb-16">{{ __('Case portfolio') }}</h2>
@@ -23,7 +23,7 @@
           @endforeach
         </select>
       </div>
-      <div style="align-self:end">
+      <div style="align-self:end; display:flex; gap:12px; flex-wrap:wrap;">
         <button class="btn">{{ __('Apply filters') }}</button>
         @can('create-case')
           <a class="btn btn-primary" href="{{ route('cases.create') }}">{{ __('Create case') }}</a>

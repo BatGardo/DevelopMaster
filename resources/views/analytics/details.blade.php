@@ -138,42 +138,42 @@
 
   <div class="card mb-20">
     <h3 class="mb-12">{{ __('Detailed case list') }}</h3>
-    <table class="table">
-      <thead>
-      <tr>
-        <th>ID</th>
-        <th>{{ __('Title') }}</th>
-        <th>{{ __('Status') }}</th>
-        <th>{{ __('Owner') }}</th>
-        <th>{{ __('Executor') }}</th>
-        <th>{{ __('Created at') }}</th>
-        <th>{{ __('Deadline') }}</th>
-        <th>{{ __('Actions') }}</th>
-        <th>{{ __('Documents') }}</th>
-        <th>{{ __('Last activity') }}</th>
-        <th></th>
-      </tr>
-      </thead>
-      <tbody>
-      @forelse($cases as $case)
+    <div class="table-scroll">
+      <table class="table">
+        <thead>
         <tr>
-          <td>{{ $case->id }}</td>
-          <td>{{ $case->title }}</td>
-          <td><span class="badge">{{ $case->status_label }}</span></td>
-          <td>{{ $case->owner?->name ?? __('Unknown') }}</td>
-          <td>{{ $case->executor?->name ?? __('Unassigned') }}</td>
-          <td>{{ $case->created_at?->format('Y-m-d') }}</td>
-          <td>{{ $case->deadline_at?->format('Y-m-d') ?? __('N/A') }}</td>
-          <td>{{ $case->actions_count }}</td>
-          <td>{{ $case->documents_count }}</td>
-          <td>{{ $case->actions_max_created_at ? \Illuminate\Support\Carbon::parse($case->actions_max_created_at)->format('Y-m-d H:i') : __('N/A') }}</td>
-          <td><a class="btn btn-ghost" href="{{ route('cases.show', $case) }}">{{ __('Open') }}</a></td>
+          <th>{{ __('Title') }}</th>
+          <th>{{ __('Status') }}</th>
+          <th>{{ __('Owner') }}</th>
+          <th>{{ __('Executor') }}</th>
+          <th>{{ __('Created at') }}</th>
+          <th>{{ __('Deadline') }}</th>
+          <th>{{ __('Actions') }}</th>
+          <th>{{ __('Documents') }}</th>
+          <th>{{ __('Last activity') }}</th>
+          <th></th>
         </tr>
-      @empty
-        <tr><td colspan="11" class="help">{{ __('No cases match the current filters.') }}</td></tr>
-      @endforelse
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+        @forelse($cases as $case)
+          <tr>
+            <td>{{ $case->title }}</td>
+            <td><span class="badge">{{ $case->status_label }}</span></td>
+            <td>{{ $case->owner?->name ?? __('Unknown') }}</td>
+            <td>{{ $case->executor?->name ?? __('Unassigned') }}</td>
+            <td>{{ $case->created_at?->format('Y-m-d') }}</td>
+            <td>{{ $case->deadline_at?->format('Y-m-d') ?? __('N/A') }}</td>
+            <td>{{ $case->actions_count }}</td>
+            <td>{{ $case->documents_count }}</td>
+            <td>{{ $case->actions_max_created_at ? \Illuminate\Support\Carbon::parse($case->actions_max_created_at)->format('Y-m-d H:i') : __('N/A') }}</td>
+            <td><a class="btn btn-ghost" href="{{ route('cases.show', $case) }}">{{ __('Open') }}</a></td>
+          </tr>
+        @empty
+          <tr><td colspan="10" class="help">{{ __('No cases match the current filters.') }}</td></tr>
+        @endforelse
+        </tbody>
+      </table>
+    </div>
     <div class="mt-12">{{ $cases->links() }}</div>
   </div>
 

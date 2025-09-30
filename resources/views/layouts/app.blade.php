@@ -1,4 +1,4 @@
-РїВ»С—<!doctype html>
+<!doctype html>
 <html lang="{{ str_replace('_','-',app()->getLocale()) }}">
 <head>
   <meta charset="utf-8">
@@ -9,7 +9,6 @@
   <script defer src="{{ asset('assets/app.js') }}"></script>
 </head>
 <body>
-
   <header class="navbar">
     <div class="container wrap">
       <a class="brand" href="{{ route('home') }}">
