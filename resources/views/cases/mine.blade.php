@@ -1,5 +1,5 @@
-﻿@extends('layouts.app')
-@php use Illuminate\\Support\\Str; @endphp
+@extends('layouts.app')
+@php use Illuminate\Support\Str; @endphp
 
 @section('content')
   <h2 class="mb-16">{{ __('My cases') }}</h2>
@@ -22,10 +22,10 @@
         <tr>
           <td>{{ $case->id }}</td>
           <td>{{ Str::limit($case->title, 60) }}</td>
-          <td><span class="badge">{{ $case->status }}</span></td>
-          <td>{{ $case->executor?->name ?? '—' }}</td>
-          <td>{{ $case->owner?->name ?? '—' }}</td>
-          <td>{{ $case->deadline_at?->format('Y-m-d') ?? '—' }}</td>
+          <td><span class="badge">{{ $case->status_label }}</span></td>
+          <td>{{ $case->executor?->name ?? '-' }}</td>
+          <td>{{ $case->owner?->name ?? '-' }}</td>
+          <td>{{ $case->deadline_at?->format('Y-m-d') ?? '-' }}</td>
           <td><a class="btn" href="{{ route('cases.show', $case) }}">{{ __('View') }}</a></td>
         </tr>
       @empty
@@ -36,4 +36,3 @@
     <div class="mt-16">{{ $cases->links() }}</div>
   </div>
 @endsection
-

@@ -1,9 +1,9 @@
-﻿@extends('layouts.app')
+Р С—Р’В»РЎвЂ”@extends('layouts.app')
 
 @section('content')
   <h2 class="mb-16">{{ __('Analytics dashboard') }}</h2>
 
-  <div class="grid grid-3 mb-20">
+  <div class="grid grid-3 mb-20" style="margin-bottom: 10px;">
     <div class="kpi">
       <div class="label">{{ __('Total cases') }}</div>
       <div class="value">{{ array_sum($byStatus->toArray()) }}</div>
@@ -18,7 +18,7 @@
     </div>
   </div>
 
-  <div class="grid grid-2 mb-20">
+  <div class="grid grid-2 mb-20" style="margin-bottom: 10px;">
     <div class="card">
       <h3 class="mb-12">{{ __('Cases by status') }}</h3>
       <canvas id="analytics-status"></canvas>
@@ -29,7 +29,7 @@
     </div>
   </div>
 
-  <div class="grid grid-2 mb-20">
+  <div class="grid grid-2 mb-20" style="margin-bottom: 10px;">
     <div class="card">
       <h3 class="mb-12">{{ __('Case registrations trend (12 months)') }}</h3>
       <canvas id="analytics-trend"></canvas>

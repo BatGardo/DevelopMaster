@@ -1,4 +1,4 @@
-﻿<!doctype html>
+РїВ»С—<!doctype html>
 <html lang="{{ str_replace('_','-',app()->getLocale()) }}">
 <head>
   <meta charset="utf-8">
@@ -37,7 +37,8 @@
           @endif
 
           @can('view-analytics')
-            <a href="{{ route('analytics.index') }}">{{ __('Analytics') }}</a>
+            <a href="{{ route('analytics.index') }}">{{ __('Analytics overview') }}</a>
+            <a href="{{ route('analytics.records') }}">{{ __('Analytics records') }}</a>
           @endcan
 
           <a href="{{ route('notifications.index') }}">{{ __('Notifications') }}</a>

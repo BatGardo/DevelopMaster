@@ -46,6 +46,7 @@ class HomeController extends Controller
         return view('dashboard', array_merge($payload, [
             'role' => $role,
             'user' => $user,
+            'statusLabels' => CaseModel::statusOptions(),
         ]));
     }
 
@@ -59,7 +60,7 @@ class HomeController extends Controller
                 return [
                     'case_id' => $action->case_id,
                     'case_title' => $action->case?->title,
-                    'type' => $action->type,
+                    'type' => __('actions.' . $action->type),
                     'notes' => $action->notes,
                     'performed_by' => $action->user?->name,
                     'at' => $action->created_at,
@@ -188,7 +189,16 @@ class HomeController extends Controller
         $latestActions = CaseAction::with(['case', 'user'])
             ->latest()
             ->take(15)
-            ->get();
+            ->get()
+            ->map(function (CaseAction $action) {
+                return [
+                    'case_id' => $action->case_id,
+                    'type' => __('actions.' . $action->type),
+                    'notes' => $action->notes,
+                    'performed_by' => $action->user?->name,
+                    'at' => $action->created_at,
+                ];
+            });
 
         $topExecutors = CaseModel::select('executor_id', DB::raw('COUNT(*) as total'))
             ->groupBy('executor_id')

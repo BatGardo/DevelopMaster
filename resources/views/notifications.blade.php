@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+п»ї@extends('layouts.app')
 
 @section('content')
   <h2 class="mb-16">{{ __('Activity feed') }}</h2>
@@ -9,9 +9,9 @@
         <strong>{{ $notification['type'] }}</strong>
         <div>{{ $notification['notes'] ?? __('No description') }}</div>
         <div class="help">
-          {{ __('Case') }} #{{ $notification['case_id'] }} ·
-          {{ $notification['case_title'] ?? __('Untitled') }} ·
-          {{ $notification['performed_by'] ?? __('System') }} ·
+          {{ __('Case') }} #{{ $notification['case_id'] }} В·
+          {{ $notification['case_title'] ?? __('Untitled') }} В·
+          {{ $notification['performed_by'] ?? __('System') }} В·
           {{ $notification['at']->format('Y-m-d H:i') }}
         </div>
       </div>

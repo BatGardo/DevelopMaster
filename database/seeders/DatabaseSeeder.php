@@ -2,16 +2,11 @@
 
 namespace Database\Seeders;
 
-use App\Models\CaseAction;
-use App\Models\CaseDocument;
-use App\Models\CaseModel;
 use App\Models\Position;
 use App\Models\Post;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
 {
@@ -72,55 +67,6 @@ class DatabaseSeeder extends Seeder
             $post->save();
         });
 
-        $caseOwners = $applicants->values();
-        $caseExecutors = $executors->values();
-
-        CaseModel::factory()->count(60)->make()->each(function (CaseModel $case) use ($caseOwners, $caseExecutors) {
-            $owner = $caseOwners->random();
-            $executor = $caseExecutors->random();
-
-            $case->user_id = $owner->id;
-            $case->executor_id = $executor->id;
-
-            if ($case->status === 'closed' && $case->updated_at < $case->created_at) {
-                $case->updated_at = $case->created_at->copy()->addDays(rand(5, 60));
-            }
-
-            $case->save();
-
-            CaseAction::create([
-                'case_id' => $case->id,
-                'user_id' => $owner->id,
-                'type' => 'created',
-                'notes' => 'Case registered via demo seeder',
-                'created_at' => $case->created_at,
-                'updated_at' => $case->created_at,
-            ]);
-
-            $participants = collect([$owner, $executor]);
-
-            CaseAction::factory()->count(rand(2, 6))->make()->each(function (CaseAction $action) use ($case, $participants) {
-                $actor = $participants->random();
-                $action->case_id = $case->id;
-                $action->user_id = $actor->id;
-                $action->created_at = $action->created_at ?? now();
-                $action->updated_at = $action->created_at;
-                $action->save();
-            });
-
-            CaseDocument::factory()->count(rand(0, 3))->make()->each(function (CaseDocument $document) use ($case, $participants) {
-                $uploader = $participants->random();
-                $path = Str::replaceFirst('cases/demo/', 'cases/'.$case->id.'/', $document->path);
-
-                Storage::disk('public')->put($path, 'Demo document for case #'.$case->id);
-
-                $document->case_id = $case->id;
-                $document->uploaded_by = $uploader->id;
-                $document->path = $path;
-                $document->created_at = $document->created_at ?? now();
-                $document->updated_at = $document->created_at;
-                $document->save();
-            });
-        });
+        $this->call(UkrainianCaseSeeder::class);
     }
 }

@@ -1,15 +1,13 @@
-@extends('layouts.app')
+п»ї@extends('layouts.app')
 
-@php
-    use Illuminate\Support\Str;
-@endphp
+@php use Illuminate\Support\Str; @endphp
 
 @section('content')
   <h2 class="mb-12">{{ __('Welcome back') }}, {{ $user->name }}!</h2>
 
-  @if ($role === 'admin')
-    <div class="grid grid-4 mb-20">
-      @foreach ($summaryCards as $card)
+  @if($role === 'admin')
+    <div class="grid grid-4 mb-20" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;margin-bottom:40px;">
+      @foreach($summaryCards as $card)
         <div class="kpi">
           <div class="label">{{ $card['label'] }}</div>
           <div class="value">{{ $card['value'] }}</div>
@@ -17,7 +15,7 @@
       @endforeach
     </div>
 
-    <div class="grid grid-2 mb-20">
+    <div class="grid grid-2 mb-10">
       <div class="card">
         <h3 class="mb-12">{{ __('Cases by status') }}</h3>
         <canvas id="chart-status"></canvas>
@@ -38,7 +36,6 @@
         <table class="table small">
           <thead>
           <tr>
-            <th>ID</th>
             <th>{{ __('Title') }}</th>
             <th>{{ __('Owner') }}</th>
             <th>{{ __('Executor') }}</th>
@@ -46,13 +43,12 @@
           </tr>
           </thead>
           <tbody>
-          @foreach ($recentCases as $recent)
+          @foreach($recentCases as $recent)
             <tr>
-              <td>{{ $recent->id }}</td>
               <td><a href="{{ route('cases.show', $recent) }}">{{ Str::limit($recent->title, 50) }}</a></td>
-              <td>{{ $recent->owner?->name ?? __('Unknown') }}</td>
+              <td>{{ $recent->owner?->name }}</td>
               <td>{{ $recent->executor?->name ?? __('Unassigned') }}</td>
-              <td><span class="badge">{{ $recent->status }}</span></td>
+              <td><span class="badge">{{ $recent->status_label }}</span></td>
             </tr>
           @endforeach
           </tbody>
@@ -60,7 +56,7 @@
       </div>
     </div>
 
-    @if ($olap['enabled'] ?? false)
+    @if($olap['enabled'])
       <div class="grid grid-2 mb-20">
         <div class="card">
           <h3 class="mb-12">{{ __('User logins (30 days)') }}</h3>
@@ -72,7 +68,7 @@
         </div>
       </div>
     @endif
-  @elseif ($role === 'executor')
+  @elseif($role === 'executor')
     <div class="grid grid-3 mb-20">
       <div class="kpi">
         <div class="label">{{ __('Assigned matters') }}</div>
@@ -91,8 +87,8 @@
     <div class="card mb-20">
       <h3 class="mb-12">{{ __('Status overview') }}</h3>
       <div class="chips">
-        @foreach ($statusSummary as $status => $count)
-          <span class="chip">{{ $status }} - {{ $count }}</span>
+        @foreach($statusSummary as $status => $count)
+          <span class="chip">{{ $statusLabels[$status] ?? $status }} - {{ $count }}</span>
         @endforeach
       </div>
     </div>
@@ -110,12 +106,12 @@
           </tr>
           </thead>
           <tbody>
-          @foreach ($assignedCases as $case)
+          @foreach($assignedCases as $case)
             <tr>
               <td>{{ $case->id }}</td>
               <td><a href="{{ route('cases.show', $case) }}">{{ Str::limit($case->title, 40) }}</a></td>
-              <td>{{ $case->owner?->name ?? __('Unknown') }}</td>
-              <td>{{ $case->deadline_at?->format('Y-m-d') ?? __('Not set') }}</td>
+              <td>{{ $case->owner?->name }}</td>
+              <td>{{ $case->deadline_at?->format('Y-m-d') ?? '&mdash;' }}</td>
             </tr>
           @endforeach
           </tbody>
@@ -124,12 +120,12 @@
       <div class="card">
         <h3 class="mb-12">{{ __('Upcoming deadlines') }}</h3>
         <ul class="timeline">
-          @forelse ($upcomingDeadlines as $case)
+          @forelse($upcomingDeadlines as $case)
             <li>
-              <div class="timeline-date">{{ $case->deadline_at?->format('d M') ?? __('N/A') }}</div>
+              <div class="timeline-date">{{ $case->deadline_at?->format('d M') ?? '&mdash;' }}</div>
               <div class="timeline-content">
                 <a href="{{ route('cases.show', $case) }}">{{ Str::limit($case->title, 50) }}</a>
-                <span class="help">{{ __('Owner') }}: {{ $case->owner?->name ?? __('Unknown') }}</span>
+                <span class="help">{{ __('Owner') }}: {{ $case->owner?->name ?? '&mdash;' }}</span>
               </div>
             </li>
           @empty
@@ -142,11 +138,11 @@
     <div class="card">
       <h3 class="mb-12">{{ __('Recent activity') }}</h3>
       <ul class="timeline">
-        @forelse ($recentActivity as $activity)
+        @forelse($recentActivity as $activity)
           <li>
-            <div class="timeline-date">{{ $activity->created_at->format('d.m H:i') }}</div>
+            <div class="timeline-date">{{ optional($activity->created_at)->format('d.m H:i') ?? '&mdash;' }}</div>
             <div class="timeline-content">
-              <strong>{{ $activity->type }}</strong> - {{ $activity->notes ?? __('No comment') }}
+              <strong>{{ $activity->type_label }}</strong> вЂ” {{ $activity->notes ?? __('No comment') }}
               <div class="help">{{ __('Case') }}: <a href="{{ route('cases.show', $activity->case_id) }}">#{{ $activity->case_id }}</a></div>
             </div>
           </li>
@@ -155,9 +151,9 @@
         @endforelse
       </ul>
     </div>
-  @elseif ($role === 'viewer')
+  @elseif($role === 'viewer')
     <div class="grid grid-3 mb-20">
-      @foreach ($summaryCards as $card)
+      @foreach($summaryCards as $card)
         <div class="kpi">
           <div class="label">{{ $card['label'] }}</div>
           <div class="value">{{ $card['value'] }}</div>
@@ -176,7 +172,7 @@
           </tr>
           </thead>
           <tbody>
-          @foreach ($topExecutors as $row)
+          @foreach($topExecutors as $row)
             <tr>
               <td>{{ $row['name'] }}</td>
               <td>{{ $row['total'] }}</td>
@@ -188,11 +184,11 @@
       <div class="card">
         <h3 class="mb-12">{{ __('Latest actions') }}</h3>
         <ul class="timeline">
-          @foreach ($latestActions as $action)
+          @foreach($latestActions as $action)
             <li>
-              <div class="timeline-date">{{ $action['at']->format('d.m H:i') }}</div>
+              <div class="timeline-date">{{ optional($action['at'])->format('d.m H:i') ?? '&mdash;' }}</div>
               <div class="timeline-content">
-                <strong>{{ $action['type'] }}</strong> - {{ $action['notes'] ?? __('No comment') }}
+                <strong>{{ $action['type'] }}</strong> вЂ” {{ $action['notes'] ?? __('No comment') }}
                 <div class="help">{{ __('Case') }} #{{ $action['case_id'] }} - {{ $action['performed_by'] ?? __('System') }}</div>
               </div>
             </li>
@@ -201,7 +197,7 @@
       </div>
     </div>
 
-    @if ($olap['enabled'] ?? false)
+    @if($olap['enabled'] ?? false)
       <div class="card mb-20">
         <h3 class="mb-12">{{ __('User logins (30 days)') }}</h3>
         <canvas id="chart-logins"></canvas>
@@ -237,13 +233,13 @@
           </tr>
           </thead>
           <tbody>
-          @foreach ($myCases as $case)
+          @foreach($myCases as $case)
             <tr>
               <td>{{ $case->id }}</td>
               <td><a href="{{ route('cases.show', $case) }}">{{ Str::limit($case->title, 50) }}</a></td>
-              <td><span class="badge">{{ $case->status }}</span></td>
+              <td><span class="badge">{{ $case->status_label }}</span></td>
               <td>{{ $case->executor?->name ?? __('Unassigned') }}</td>
-              <td>{{ $case->deadline_at?->format('Y-m-d') ?? __('Not set') }}</td>
+              <td>{{ $case->deadline_at?->format('Y-m-d') ?? '&mdash;' }}</td>
             </tr>
           @endforeach
           </tbody>
@@ -252,14 +248,12 @@
       <div class="card">
         <h3 class="mb-12">{{ __('Upcoming deadlines') }}</h3>
         <ul class="timeline">
-          @forelse ($upcomingDeadlines as $case)
+          @foreach($upcomingDeadlines as $case)
             <li>
-              <div class="timeline-date">{{ $case->deadline_at?->format('d M') ?? __('N/A') }}</div>
+              <div class="timeline-date">{{ $case->deadline_at?->format('d M') ?? '&mdash;' }}</div>
               <div class="timeline-content"><a href="{{ route('cases.show', $case) }}">{{ Str::limit($case->title, 60) }}</a></div>
             </li>
-          @empty
-            <li class="help">{{ __('No upcoming deadlines') }}</li>
-          @endforelse
+          @endforeach
         </ul>
       </div>
     </div>
@@ -267,13 +261,13 @@
 @endsection
 
 @push('scripts')
-  @if ($role === 'admin')
+  @if($role === 'admin')
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
       const statusData = @json($statusBreakdown ?? []);
-      const executorLoad = @json(($executorLoad ?? collect())->map(fn ($row) => $row)->toArray());
+      const executorLoad = @json(($executorLoad ?? collect())->map(fn($row) => $row)->toArray());
       const monthlyTrend = @json($monthlyTrend ?? []);
-      const olap = @json($olap ?? []);
+      const olap = @json($olap);
 
       if (Object.keys(statusData).length) {
         new Chart(document.getElementById('chart-status'), {
@@ -338,7 +332,7 @@
                 data: olap.logins.map(row => row.total),
                 borderColor: 'rgba(99, 102, 241, 1)',
                 fill: false,
-                tension: 0.2
+                tension: 0.2,
               }]
             }
           });
@@ -362,10 +356,10 @@
         }
       }
     </script>
-  @elseif ($role === 'viewer' && ($olap['enabled'] ?? false))
+  @elseif($role === 'viewer' && ($olap['enabled'] ?? false))
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-      const viewerOlap = @json($olap ?? []);
+      const viewerOlap = @json($olap);
       if (viewerOlap.enabled) {
         new Chart(document.getElementById('chart-logins'), {
           type: 'line',
@@ -374,9 +368,8 @@
             datasets: [{
               label: '{{ __('Logins') }}',
               data: viewerOlap.logins.map(row => row.total),
-              borderColor: 'rgba(99, 102, 241, 1)',
+              borderColor: 'rgba(99,102,241,1)',
               tension: 0.25,
-              fill: false
             }]
           }
         });

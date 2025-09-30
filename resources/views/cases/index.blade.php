@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+п»ї@extends('layouts.app')
 
 @section('content')
   <h2 class="mb-16">{{ __('Case portfolio') }}</h2>
@@ -18,7 +18,7 @@
         <label class="label">{{ __('Status') }}</label>
         <select class="input" name="status">
           <option value="">{{ __('Any status') }}</option>
-          @foreach(['new' => __('new'), 'in_progress' => __('in progress'), 'done' => __('done'), 'closed' => __('closed')] as $key => $label)
+          @foreach(\App\Models\CaseModel::statusOptions() as $key => $label)
             <option value="{{ $key }}" @selected(request('status') == $key)>{{ $label }}</option>
           @endforeach
         </select>
@@ -50,8 +50,8 @@
           <td>{{ $case->id }}</td>
           <td>{{ \Illuminate\Support\Str::limit($case->title, 60) }}</td>
           <td>{{ $case->executor?->name ?? __('Unassigned') }}</td>
-          <td><span class="badge">{{ $case->status }}</span></td>
-          <td>{{ $case->deadline_at?->format('Y-m-d') ?? 'вЂ”' }}</td>
+          <td><span class="badge">{{ $case->status_label }}</span></td>
+          <td>{{ $case->deadline_at?->format('Y-m-d') ?? 'РІР‚вЂќ' }}</td>
           <td><a class="btn" href="{{ route('cases.show', $case) }}">{{ __('Open') }}</a></td>
         </tr>
       @empty

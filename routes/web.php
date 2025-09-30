@@ -1,8 +1,9 @@
-﻿<?php
+РїВ»С—<?php
 
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CaseController;
+use App\Http\Controllers\CaseDocumentController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PositionController;
 use Illuminate\Support\Facades\Route;
@@ -49,12 +50,34 @@ Route::middleware('auth')->group(function () {
     Route::get('/cases/{case}', [CaseController::class, 'show'])
         ->middleware('role:admin,executor,viewer,applicant')
         ->name('cases.show');
+    Route::get('/cases/{case}/export/pdf', [CaseController::class, 'exportPdf'])
+        ->middleware('role:admin,executor,viewer,applicant')
+        ->name('cases.export.pdf');
+
     Route::post('/cases/{case}/actions', [CaseController::class, 'addAction'])
         ->middleware('role:admin,executor')
         ->name('cases.actions.store');
     Route::post('/cases/{case}/upload', [CaseController::class, 'uploadDocument'])
         ->middleware('role:admin,executor')
         ->name('cases.documents.store');
+    Route::get('/cases/{case}/documents/{document}/download', [CaseDocumentController::class, 'download'])
+        ->middleware('role:admin,executor,viewer,applicant')
+        ->name('cases.documents.download');
+    Route::patch('/cases/{case}/documents/{document}', [CaseDocumentController::class, 'update'])
+        ->middleware('role:admin,executor')
+        ->name('cases.documents.update');
+    Route::delete('/cases/{case}/documents/{document}', [CaseDocumentController::class, 'destroy'])
+        ->middleware('role:admin,executor')
+        ->name('cases.documents.destroy');
+
+
+    Route::get('/analytics/records', [AnalyticsController::class, 'records'])
+        ->middleware('can:view-analytics')
+        ->name('analytics.records');
+
+    Route::get('/analytics/records/export', [AnalyticsController::class, 'exportRecords'])
+        ->middleware('can:view-analytics')
+        ->name('analytics.records.export');
 
     Route::get('/analytics', [AnalyticsController::class, 'index'])
         ->middleware('can:view-analytics')

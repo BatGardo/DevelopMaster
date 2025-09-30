@@ -6,6 +6,7 @@ use App\Models\CaseAction;
 use App\Models\CaseDocument;
 use App\Models\CaseModel;
 use App\Models\User;
+use App\Services\Reports\CasePdfExporter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
@@ -98,18 +99,20 @@ class CaseController extends Controller
         if ($request->hasFile('documents')) {
             foreach ($request->file('documents') as $file) {
                 $path = $file->store('cases/'.$case->id, 'public');
-                CaseDocument::create([
+                $document = CaseDocument::create([
                     'case_id' => $case->id,
                     'uploaded_by' => $request->user()->id,
                     'title' => $file->getClientOriginalName(),
                     'path' => $path,
+                    'file_size' => $file->getSize(),
+                    'mime_type' => $file->getMimeType(),
                 ]);
 
                 CaseAction::create([
                     'case_id' => $case->id,
                     'user_id' => $request->user()->id,
                     'type' => 'document_added',
-                    'notes' => $file->getClientOriginalName(),
+                    'notes' => $document->title,
                 ]);
             }
         }
@@ -145,26 +148,40 @@ class CaseController extends Controller
         return back()->with('ok', __('Action added successfully.'));
     }
 
+
+    public function exportPdf(Request $request, CaseModel $case, CasePdfExporter $exporter)
+    {
+        Gate::authorize('view-case', $case);
+
+        $pdf = $exporter->build($case);
+        $filename = sprintf('case-%d-%s.pdf', $case->id, now()->format('Ymd-His'));
+
+        return $pdf->download($filename);
+    }
+
     public function uploadDocument(Request $request, CaseModel $case)
     {
         Gate::authorize('update-case', $case);
 
         $request->validate(['file' => ['required', 'file', 'max:20480']]);
 
-        $path = $request->file('file')->store('cases/'.$case->id, 'public');
+        $uploadedFile = $request->file('file');
+        $path = $uploadedFile->store('cases/'.$case->id, 'public');
 
-        CaseDocument::create([
+        $document = CaseDocument::create([
             'case_id' => $case->id,
             'uploaded_by' => $request->user()->id,
-            'title' => $request->file('file')->getClientOriginalName(),
+            'title' => $uploadedFile->getClientOriginalName(),
             'path' => $path,
+            'file_size' => $uploadedFile->getSize(),
+            'mime_type' => $uploadedFile->getMimeType(),
         ]);
 
         CaseAction::create([
             'case_id' => $case->id,
             'user_id' => $request->user()->id,
             'type' => 'document_added',
-            'notes' => $request->file('file')->getClientOriginalName(),
+            'notes' => $document->title,
         ]);
 
         return back()->with('ok', __('Document uploaded successfully.'));
