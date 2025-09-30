@@ -1,10 +1,16 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="max-w-lg bg-white p-6 rounded shadow">
-  <h1 class="text-xl font-bold mb-4">Профіль</h1>
-  <p><b>Ім’я:</b> {{ auth()->user()->name }}</p>
-  <p><b>Email:</b> {{ auth()->user()->email }}</p>
-  <p class="text-slate-500 mt-3">Тут можна додати форму зміни пароля, 2FA тощо.</p>
+<h2 class="mb-16">Профіль</h2>
+<div class="card" style="max-width:620px">
+  <div class="field">
+    <span class="label">Ім’я</span>
+    <div class="input" style="border:0;background:#f8fafc">{{ auth()->user()->name }}</div>
+  </div>
+  <div class="field">
+    <span class="label">Email</span>
+    <div class="input" style="border:0;background:#f8fafc">{{ auth()->user()->email }}</div>
+  </div>
+  <div class="alert alert-ok mt-20">Налаштування безпеки й зміна пароля додамо на наступному кроці.</div>
 </div>
 @endsection

@@ -11,6 +11,8 @@ class CaseAction extends Model
 
     protected $fillable = ['case_id','user_id','type','notes'];
 
+    protected $appends = ['type_label'];
+
     public function case()
     {
         return $this->belongsTo(CaseModel::class, 'case_id');
@@ -18,5 +20,10 @@ class CaseAction extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function getTypeLabelAttribute(): string
+    {
+        return __('actions.' . $this->type);
     }
 }

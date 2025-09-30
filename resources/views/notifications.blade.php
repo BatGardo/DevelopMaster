@@ -1,17 +1,22 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="bg-white p-6 rounded shadow">
-  <h1 class="text-xl font-bold mb-4">Сповіщення</h1>
-  <ul class="space-y-2">
-    @forelse($notifications as $n)
-      <li class="border rounded p-3">
-        <div class="font-medium">{{ $n['message'] }}</div>
-        <div class="text-xs text-slate-500">{{ $n['at']->format('Y-m-d H:i') }}</div>
-      </li>
+  <h2 class="mb-16">{{ __('Activity feed') }}</h2>
+
+  <div class="card">
+    @forelse($notifications as $notification)
+      <div class="alert alert-warn mb-8">
+        <strong>{{ $notification['type'] }}</strong>
+        <div>{{ $notification['notes'] ?? __('No description') }}</div>
+        <div class="help">
+          {{ __('Case') }} #{{ $notification['case_id'] }} В·
+          {{ $notification['case_title'] ?? __('Untitled') }} В·
+          {{ $notification['performed_by'] ?? __('System') }} В·
+          {{ $notification['at']->format('Y-m-d H:i') }}
+        </div>
+      </div>
     @empty
-      <li class="text-slate-500">Немає сповіщень</li>
+      <div class="help">{{ __('No activity yet.') }}</div>
     @endforelse
-  </ul>
-</div>
+  </div>
 @endsection

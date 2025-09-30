@@ -1,73 +1,127 @@
 @extends('layouts.app')
+
+@php use Illuminate\Support\Str; @endphp
+
 @section('content')
-@if(session('ok')) <div class="alert alert-ok mb-16">{{ session('ok') }}</div> @endif
+  @if(session('ok'))
+    <div class="alert alert-ok mb-16">{{ session('ok') }}</div>
+  @endif
 
-<div class="grid grid-2">
-  <div class="card">
-    <h3 class="mb-16">{{ $case->title }}</h3>
-    <p class="mb-8"><b>Статус:</b> <span class="badge">{{ $case->status }}</span></p>
-    <p class="mb-8"><b>Стягувач:</b> {{ $case->claimant_name ?? '—' }}</p>
-    <p class="mb-8"><b>Боржник:</b> {{ $case->debtor_name ?? '—' }}</p>
-    <p class="mb-8"><b>Виконавець:</b> {{ $case->executor?->name ?? '—' }}</p>
-    <p class="mb-8"><b>Строк:</b> {{ $case->deadline_at?->format('Y-m-d') ?? '—' }}</p>
-    <p class="mb-8"><b>Опис:</b> {!! nl2br(e($case->description)) !!}</p>
-  </div>
-
-  <div class="card">
-    <h3 class="mb-16">Додати дію</h3>
-    <form method="POST" action="{{ route('cases.actions.store',$case) }}">
-      @csrf
-      <div class="grid grid-2">
-        <div class="field">
-          <label class="label">Тип</label>
-          <select class="input" name="type">
-            <option value="custom">Користувацька</option>
-            <option value="asset_arrest">Арешт майна</option>
-            <option value="notice_sent">Надіслано повідомлення</option>
-            <option value="document_added">Додано документ</option>
-          </select>
-        </div>
-        <div class="field">
-          <label class="label">Нотатка</label>
-          <input class="input" name="notes">
-        </div>
+  <div class="grid grid-2">
+    <div class="card">
+      <div class="flex justify-between items-center mb-12">
+        <h3 class="m-0">{{ $case->title }}</h3>
+        <a class="btn btn-primary" href="{{ route('cases.export.pdf', $case) }}" target="_blank">{{ __('Export PDF') }}</a>
       </div>
-      <button class="btn">Зберегти</button>
-    </form>
-    <hr class="mb-16" style="border:none;height:1px;background:#e2e8f0;margin-top:16px">
-    <h3 class="mb-16">Завантажити документ</h3>
-    <form method="POST" action="{{ route('cases.documents.store',$case) }}" enctype="multipart/form-data">
-      @csrf
-      <input class="input" type="file" name="file" required>
-      <button class="btn">Завантажити</button>
-    </form>
-  </div>
-</div>
-
-<div class="card mt-20">
-  <h3 class="mb-16">Хронологія дій</h3>
-  @forelse($case->actions as $a)
-    <div class="mb-8">
-      <div><b>{{ $a->created_at->format('Y-m-d H:i') }}</b> • {{ $a->type }} — {{ $a->notes }}</div>
-      <div class="help">виконав: {{ $a->user?->name ?? 'система' }}</div>
+      <p class="mb-8"><b>{{ __('Status') }}:</b> <span class="badge">{{ $case->status_label }}</span></p>
+      <p class="mb-8"><b>{{ __('Claimant') }}:</b> {{ $case->claimant_name ?? '�' }}</p>
+      <p class="mb-8"><b>{{ __('Debtor') }}:</b> {{ $case->debtor_name ?? '�' }}</p>
+      <p class="mb-8"><b>{{ __('Executor') }}:</b> {{ $case->executor?->name ?? __('Unassigned') }}</p>
+      <p class="mb-8"><b>{{ __('Deadline') }}:</b> {{ $case->deadline_at?->format('Y-m-d') ?? '�' }}</p>
+      <p class="mb-8"><b>{{ __('Description') }}:</b> {!! nl2br(e($case->description)) !!}</p>
     </div>
-  @empty
-    <div class="help">Ще немає дій</div>
-  @endforelse
-</div>
 
-<div class="card mt-20">
-  <h3 class="mb-16">Документи</h3>
-  <ul>
-    @forelse($case->documents as $d)
-      <li class="mb-8">
-        <a href="{{ Storage::disk('public')->url($d->path) }}" target="_blank" class="btn">Завантажити</a>
-        {{ $d->title }}
-        <span class="help">({{ $d->created_at->format('Y-m-d H:i') }}, {{ $d->uploader?->name ?? '—' }})</span>
-      </li>
-    @empty
-      <li class="help">Документів немає</li>
-    @endforelse
-  </ul>
-</div>
+    <div class="card">
+      <h3 class="mb-16">{{ __('Add activity') }}</h3>
+
+      @if($canUpdate)
+        <form method="POST" action="{{ route('cases.actions.store', $case) }}" class="mb-16">
+          @csrf
+          <div class="grid grid-2">
+            <div class="field">
+              <label class="label">{{ __('Type') }}</label>
+              <select class="input" name="type">
+                <option value="custom">{{ __('Custom note') }}</option>
+                <option value="asset_arrest">{{ __('Asset arrest') }}</option>
+                <option value="notice_sent">{{ __('Notice sent') }}</option>
+                <option value="document_added">{{ __('Document added') }}</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="label">{{ __('Notes') }}</label>
+              <input class="input" name="notes" placeholder="{{ __('Details...') }}">
+            </div>
+          </div>
+          <button class="btn">{{ __('Add action') }}</button>
+        </form>
+
+        <h3 class="mb-16">{{ __('Upload document') }}</h3>
+        <form method="POST" action="{{ route('cases.documents.store', $case) }}" enctype="multipart/form-data">
+          @csrf
+          <input class="input mb-8" type="file" name="file" required>
+          <button class="btn">{{ __('Upload') }}</button>
+        </form>
+      @else
+        <p class="help">{{ __('You have read-only access to this case.') }}</p>
+      @endif
+    </div>
+  </div>
+
+  <div class="card mt-20">
+    <h3 class="mb-16">{{ __('Case timeline') }}</h3>
+    <ul class="timeline">
+      @forelse($case->actions as $action)
+        <li>
+          <div class="timeline-date">{{ optional($action->created_at)->format('d.m H:i') ?? '�' }}</div>
+          <div class="timeline-content">
+            <strong>{{ $action->type_label }}</strong> � {{ $action->notes ?? __('No comment') }}
+            <div class="help">{{ __('Performed by') }}: {{ $action->user?->name ?? __('System') }}</div>
+          </div>
+        </li>
+      @empty
+        <li class="help">{{ __('No actions recorded yet.') }}</li>
+      @endforelse
+    </ul>
+  </div>
+
+  <div class="card mt-20">
+    <h3 class="mb-16">{{ __('Documents') }}</h3>
+
+    @if($case->documents->isEmpty())
+      <p class="help">{{ __('No documents attached yet.') }}</p>
+    @else
+      <table class="table">
+        <thead>
+        <tr>
+          <th>{{ __('Title') }}</th>
+          <th>{{ __('Size') }}</th>
+          <th>{{ __('Type') }}</th>
+          <th>{{ __('Uploaded by') }}</th>
+          <th>{{ __('Uploaded at') }}</th>
+          <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach($case->documents as $document)
+          <tr>
+            <td>{{ $document->title }}</td>
+            <td>{{ $document->human_size ?? '�' }}</td>
+            <td>{{ $document->mime_type ?? __('Unknown') }}</td>
+            <td>{{ $document->uploader?->name ?? '�' }}</td>
+            <td>{{ $document->created_at?->format('Y-m-d H:i') ?? '�' }}</td>
+            <td class="flex gap-2">
+              <a class="btn btn-ghost" href="{{ route('cases.documents.download', [$case, $document]) }}">{{ __('Download') }}</a>
+              @if($canUpdate)
+                <details class="inline-block">
+                  <summary class="btn btn-ghost">{{ __('Rename') }}</summary>
+                  <form method="POST" action="{{ route('cases.documents.update', [$case, $document]) }}" class="mt-2 space-y-2">
+                    @csrf
+                    @method('PATCH')
+                    <input class="input" name="title" value="{{ $document->title }}" required maxlength="255">
+                    <button class="btn btn-primary">{{ __('Save') }}</button>
+                  </form>
+                </details>
+                <form method="POST" action="{{ route('cases.documents.destroy', [$case, $document]) }}" class="inline-block" onsubmit="return confirm('{{ __('Are you sure you want to remove this document?') }}');">
+                  @csrf
+                  @method('DELETE')
+                  <button class="btn btn-ghost">{{ __('Delete') }}</button>
+                </form>
+              @endif
+            </td>
+          </tr>
+        @endforeach
+        </tbody>
+      </table>
+    @endif
+  </div>
 @endsection

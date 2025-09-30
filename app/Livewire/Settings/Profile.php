@@ -3,6 +3,8 @@
 namespace App\Livewire\Settings;
 
 use App\Models\User;
+use App\Services\Olap\OlapEventRecorder;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\Rule;
@@ -14,18 +16,12 @@ class Profile extends Component
 
     public string $email = '';
 
-    /**
-     * Mount the component.
-     */
     public function mount(): void
     {
         $this->name = Auth::user()->name;
         $this->email = Auth::user()->email;
     }
 
-    /**
-     * Update the profile information for the currently authenticated user.
-     */
     public function updateProfileInformation(): void
     {
         $user = Auth::user();
@@ -45,18 +41,24 @@ class Profile extends Component
 
         $user->fill($validated);
 
+        $dirtyColumns = array_keys($user->getDirty());
+
         if ($user->isDirty('email')) {
             $user->email_verified_at = null;
         }
 
         $user->save();
 
+        if (! empty($dirtyColumns)) {
+            App::make(OlapEventRecorder::class)->recordProfileUpdate($user, $dirtyColumns, [
+                'occurred_at' => now(),
+                'source' => 'web',
+            ]);
+        }
+
         $this->dispatch('profile-updated', name: $user->name);
     }
 
-    /**
-     * Send an email verification notification to the current user.
-     */
     public function resendVerificationNotification(): void
     {
         $user = Auth::user();
