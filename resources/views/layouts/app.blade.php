@@ -7,8 +7,14 @@
   <link rel="icon" href="/favicon.ico">
   <link rel="stylesheet" href="{{ asset('assets/app.css') }}">
   <script defer src="{{ asset('assets/app.js') }}"></script>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+    }
+  </style>
 </head>
-<body>
+<body class="app-layout">
   <header class="navbar">
     <div class="container wrap">
       <a class="brand" href="{{ route('home') }}">

@@ -5,17 +5,19 @@ namespace Database\Factories;
 use App\Models\Position;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
+use Faker\Factory as FakerFactory;
+use Faker\Generator as FakerGenerator;
 
 class UserFactory extends Factory
 {
     public function definition(): array
     {
-        $role = fake()->randomElement(['applicant', 'executor', 'viewer']);
+        $role = $this->faker->randomElement(['applicant', 'executor', 'viewer']);
         $positionId = optional(Position::firstWhere('slug', $role))->id;
 
         return [
-            'name' => fake()->name(),
-            'email'=> fake()->unique()->safeEmail(),
+            'name' => $this->faker->name(),
+            'email'=> $this->faker->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => bcrypt('password'),
             'remember_token' => Str::random(10),
@@ -50,5 +52,10 @@ class UserFactory extends Factory
             'role' => $role,
             'position_id' => optional(Position::firstWhere('slug', $role))->id,
         ];
+    }
+
+    protected function withFaker(): FakerGenerator
+    {
+        return FakerFactory::create('uk_UA');
     }
 }

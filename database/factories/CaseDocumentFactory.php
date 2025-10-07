@@ -5,6 +5,8 @@ namespace Database\Factories;
 use App\Models\CaseDocument;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
+use Faker\Factory as FakerFactory;
+use Faker\Generator as FakerGenerator;
 
 class CaseDocumentFactory extends Factory
 {
@@ -12,8 +14,8 @@ class CaseDocumentFactory extends Factory
 
     public function definition(): array
     {
-        $timestamp = fake()->dateTimeBetween('-6 months', 'now');
-        $extension = fake()->randomElement(['pdf', 'docx', 'jpg']);
+        $timestamp = $this->faker->dateTimeBetween('-6 months', 'now');
+        $extension = $this->faker->randomElement(['pdf', 'docx', 'jpg']);
 
         $mime = match ($extension) {
             'pdf' => 'application/pdf',
@@ -22,13 +24,20 @@ class CaseDocumentFactory extends Factory
             default => 'application/octet-stream',
         };
 
+        $title = Str::title($this->faker->words($this->faker->numberBetween(2, 4), true)) . '.' . $extension;
+
         return [
-            'title' => Str::title(fake()->words(rand(2, 4), true)).'.'.$extension,
-            'path' => 'cases/demo/'.Str::uuid().'.'.$extension,
-            'file_size' => fake()->numberBetween(15_000, 250_000),
+            'title' => $title,
+            'path' => 'cases/demo/' . Str::uuid() . '.' . $extension,
+            'file_size' => $this->faker->numberBetween(15_000, 250_000),
             'mime_type' => $mime,
             'created_at' => $timestamp,
             'updated_at' => $timestamp,
         ];
+    }
+
+    protected function withFaker(): FakerGenerator
+    {
+        return FakerFactory::create('uk_UA');
     }
 }

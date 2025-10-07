@@ -4,6 +4,8 @@ namespace Database\Factories;
 
 use App\Models\CaseAction;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Faker\Factory as FakerFactory;
+use Faker\Generator as FakerGenerator;
 
 class CaseActionFactory extends Factory
 {
@@ -11,10 +13,10 @@ class CaseActionFactory extends Factory
 
     public function definition(): array
     {
-        $timestamp = fake()->dateTimeBetween('-6 months', 'now');
+        $timestamp = $this->faker->dateTimeBetween('-6 months', 'now');
 
         return [
-            'type' => fake()->randomElement([
+            'type' => $this->faker->randomElement([
                 'created',
                 'comment',
                 'document_added',
@@ -22,9 +24,14 @@ class CaseActionFactory extends Factory
                 'payment_received',
                 'reminder_sent',
             ]),
-            'notes' => fake()->optional(0.7)->sentence(),
+            'notes' => $this->faker->optional(0.7)->sentence(),
             'created_at' => $timestamp,
             'updated_at' => $timestamp,
         ];
+    }
+
+    protected function withFaker(): FakerGenerator
+    {
+        return FakerFactory::create('uk_UA');
     }
 }
