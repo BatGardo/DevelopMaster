@@ -11,16 +11,22 @@ use App\Support\AnalyticsCaseFilter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class AnalyticsController extends Controller
 {
     public function index()
     {
-        $byStatus = CaseModel::select('status', DB::raw('COUNT(*) as total'))
+        $statusTotals = CaseModel::select('status', DB::raw('COUNT(*) as total'))
             ->groupBy('status')
             ->orderBy('status')
-            ->get()
-            ->mapWithKeys(fn ($row) => [__('statuses.' . $row->status) => (int) $row->total]);
+            ->pluck('total', 'status')
+            ->toArray();
+
+        $statusLabels = CaseModel::statusOptions();
+
+        $byStatus = collect($statusTotals)
+            ->mapWithKeys(fn ($count, $status) => [$statusLabels[$status] ?? $status => (int) $count]);
 
         $executorLoad = CaseModel::select('executor_id', DB::raw('COUNT(*) as total'))
             ->groupBy('executor_id')
@@ -60,16 +66,103 @@ class AnalyticsController extends Controller
                 ];
             });
 
+        $casesForAnalysis = CaseModel::select('id', 'title', 'created_at', 'deadline_at')
+            ->whereNotNull('created_at')
+            ->get();
+
+        $seasonalitySeriesCollection = $casesForAnalysis
+            ->groupBy(fn (CaseModel $case) => (int) $case->created_at->format('n'))
+            ->sortKeys()
+            ->map(function ($group, $monthNumber) {
+                $monthDate = Carbon::create((int) now()->format('Y'), $monthNumber, 1);
+                $monthName = $monthDate->locale(app()->getLocale())->isoFormat('MMMM');
+                $normalizedName = Str::ucfirst(Str::lower($monthName));
+                $total = $group->count();
+
+                $leadValues = $group->map(function (CaseModel $case) {
+                    return $case->deadline_at ? $case->deadline_at->diffInDays($case->created_at) : null;
+                })->filter();
+
+                $avgLeadRaw = $leadValues->isNotEmpty() ? $leadValues->avg() : null;
+                $avgLead = $avgLeadRaw !== null ? round(max($avgLeadRaw, 0), 1) : null;
+
+                return [
+                    'month' => $normalizedName,
+                    'total' => $total,
+                    'avg_lead' => $avgLead,
+                ];
+            })
+            ->values();
+
+        $seasonalityAverage = $seasonalitySeriesCollection->avg('total') ?? 0;
+        $seasonalityPeak = $seasonalitySeriesCollection->sortByDesc('total')->first();
+        $seasonalityTrough = $seasonalitySeriesCollection->sortBy('total')->first();
+        $seasonalitySummary = [
+            'average' => round($seasonalityAverage, 1),
+            'peak' => $seasonalityPeak,
+            'trough' => $seasonalityTrough,
+            'above' => $seasonalitySeriesCollection
+                ->filter(fn ($row) => $row['total'] > $seasonalityAverage)
+                ->map(fn ($row) => $row['month'])
+                ->unique()
+                ->values(),
+        ];
+        $seasonalitySeries = $seasonalitySeriesCollection
+            ->map(fn ($row) => [
+                'month' => $row['month'],
+                'total' => $row['total'],
+                'avgLead' => $row['avg_lead'],
+            ])
+            ->toArray();
+
+        $regionStats = $casesForAnalysis
+            ->groupBy(fn (CaseModel $case) => $this->extractRegionFromTitle($case->title))
+            ->map(function ($group, $region) {
+                $leadValues = $group->map(function (CaseModel $case) {
+                    return $case->deadline_at ? $case->deadline_at->diffInDays($case->created_at) : null;
+                })->filter();
+
+                $avgLeadRaw = $leadValues->isNotEmpty() ? $leadValues->avg() : null;
+                $avgLead = $avgLeadRaw !== null ? round(max($avgLeadRaw, 0), 1) : null;
+
+                return [
+                    'region' => $region,
+                    'total' => $group->count(),
+                    'avg_lead' => $avgLead,
+                ];
+            })
+            ->sortByDesc('total')
+            ->values();
+
+        $regionBreakdown = $regionStats->toArray();
+        $regionVelocity = $regionStats
+            ->mapWithKeys(fn ($row) => [$row['region'] => $row['avg_lead']])
+            ->toArray();
+        $regionSummary = [
+            'top' => $regionStats->first(fn ($row) => ($row['region'] ?? __('Not specified')) !== __('Not specified')) ?? $regionStats->first(),
+            'slow' => $regionStats
+                ->filter(fn ($row) => $row['avg_lead'] !== null)
+                ->sortByDesc('avg_lead')
+                ->first(),
+        ];
+
         $olap = $this->loadOlapSummary();
 
         return view('analytics', compact(
+            'statusTotals',
+            'statusLabels',
             'byStatus',
             'executorLoad',
             'onTime',
             'overdue',
             'trend',
             'topApplicants',
-            'olap'
+            'olap',
+            'seasonalitySeries',
+            'seasonalitySummary',
+            'regionBreakdown',
+            'regionVelocity',
+            'regionSummary'
         ));
     }
 
@@ -126,8 +219,12 @@ class AnalyticsController extends Controller
             ->pluck('name', 'id');
 
         $executorSummary = $executorSummaryRows->map(function ($row) use ($executorNames) {
-            $name = $row->executor_id ? ($executorNames[$row->executor_id] ?? __('Unassigned')) : __('Unassigned');
-            return ['name' => $name, 'total' => (int) $row->total];
+            $name = $executorNames[$row->executor_id] ?? __('Unassigned');
+
+            return [
+                'executor' => $name,
+                'total' => (int) $row->total,
+            ];
         });
 
         $dailySeries = (clone $baseQuery)
@@ -141,19 +238,40 @@ class AnalyticsController extends Controller
                 AnalyticsCaseFilter::apply($query, $normalizedFilters);
             })
             ->groupBy('type')
-            ->orderByDesc('total')
-            ->take(10)
-            ->get();
+            ->orderBy('type')
+            ->get()
+            ->map(function ($row) {
+                $translationKey = $row->type ? 'actions.' . $row->type : null;
+                $label = $translationKey ? __($translationKey) : __('Unknown');
 
-        $documentExtensions = CaseDocument::selectRaw("COALESCE(lower(split_part(path, '.', -1)), 'unknown') as extension, COUNT(*) as total")
+                if ($translationKey && $label === $translationKey) {
+                    $label = Str::of($row->type)->replace('_', ' ')->title();
+                }
+
+                return [
+                    'type' => $label,
+                    'total' => (int) $row->total,
+                ];
+            });
+
+        $documentExtensions = CaseDocument::select(DB::raw("lower(substring(title from '\\.\\w+$')) as ext"), DB::raw('COUNT(*) as total'))
             ->whereHas('case', function ($query) use ($normalizedFilters) {
                 AnalyticsCaseFilter::apply($query, $normalizedFilters);
             })
-            ->groupBy('extension')
+            ->groupBy('ext')
             ->orderByDesc('total')
-            ->get();
+            ->get()
+            ->map(function ($row) {
+                $extension = $row->ext ? ltrim($row->ext, '.') : __('Unknown');
+
+                return (object) [
+                    'extension' => $extension,
+                    'total' => (int) $row->total,
+                ];
+            });
 
         $overdueCases = (clone $baseQuery)
+            ->whereIn('status', ['new', 'in_progress'])
             ->whereNotNull('deadline_at')
             ->where('deadline_at', '<', now())
             ->count();
@@ -252,6 +370,17 @@ class AnalyticsController extends Controller
                 'date_to' => $dateTo?->toDateString(),
             ],
         ];
+    }
+
+    protected function extractRegionFromTitle(string $title): string
+    {
+        if (preg_match('/\\(([^,]+),/u', $title, $matches)) {
+            $region = Str::ucfirst(Str::lower(trim($matches[1])));
+
+            return $region;
+        }
+
+        return __('Not specified');
     }
 
     protected function loadOlapSummary(): array

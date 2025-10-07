@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('content')
   <div class="flex justify-between items-center mb-16">
@@ -101,7 +101,7 @@
         <thead><tr><th>{{ __('Executor') }}</th><th>{{ __('Cases') }}</th></tr></thead>
         <tbody>
         @forelse($executorSummary as $row)
-          <tr><td>{{ $row['name'] }}</td><td>{{ $row['total'] }}</td></tr>
+          <tr><td>{{ $row['executor'] ?? ($row['name'] ?? __('Unassigned')) }}</td><td>{{ $row['total'] }}</td></tr>
         @empty
           <tr><td colspan="2" class="help">{{ __('No data for current filters.') }}</td></tr>
         @endforelse
@@ -268,3 +268,9 @@
     }
   </script>
 @endpush
+
+
+
+
+
+

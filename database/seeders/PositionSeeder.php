@@ -9,17 +9,23 @@ class PositionSeeder extends Seeder
 {
     public function run(): void
     {
-        $defaults = [
-            ['name'=>'Адміністратор','slug'=>'admin'],
-            ['name'=>'Виконавець','slug'=>'executor'],
-            ['name'=>'Переглядач','slug'=>'viewer'],
-            ['name'=>'Заявник','slug'=>'applicant'],
-            ['name'=>'Аналітик','slug'=>'analyst'],
+        $positions = [
+            ['name' => 'Адміністратор', 'slug' => 'admin'],
+            ['name' => 'Виконавець', 'slug' => 'executor'],
+            ['name' => 'Спостерігач', 'slug' => 'viewer'],
+            ['name' => 'Заявник', 'slug' => 'applicant'],
+            ['name' => 'Аналітик', 'slug' => 'analyst'],
         ];
-        foreach ($defaults as $p) {
+
+        foreach ($positions as $position) {
             DB::table('positions')->updateOrInsert(
-                ['slug' => $p['slug']],
-                ['name' => $p['name'], 'active'=>true, 'updated_at'=>now(), 'created_at'=>now()]
+                ['slug' => $position['slug']],
+                [
+                    'name' => $position['name'],
+                    'active' => true,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]
             );
         }
     }

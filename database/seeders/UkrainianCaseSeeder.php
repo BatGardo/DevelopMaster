@@ -3,193 +3,204 @@
 namespace Database\Seeders;
 
 use App\Models\CaseAction;
+use App\Models\CaseDocument;
 use App\Models\CaseModel;
 use App\Models\User;
+use Faker\Factory as FakerFactory;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class UkrainianCaseSeeder extends Seeder
 {
+    private const STATUS_DISTRIBUTION = [
+        'new' => 420,
+        'in_progress' => 480,
+        'done' => 360,
+        'closed' => 240,
+    ];
+
+    private const ACTION_TYPES = [
+        'created',
+        'comment',
+        'document_added',
+        'hearing_scheduled',
+        'payment_received',
+        'reminder_sent',
+    ];
+
     public function run(): void
     {
         DB::statement('TRUNCATE TABLE case_documents, case_actions, cases RESTART IDENTITY CASCADE');
 
+        $faker = FakerFactory::create('uk_UA');
+
         $executors = User::whereIn('role', ['executor', 'admin'])->get();
-        $owners = User::whereIn('role', ['applicant', 'viewer', 'admin'])->get();
-
         if ($executors->isEmpty()) {
-            $executors = User::factory()->count(3)->executor()->create();
+            $executors = User::factory()->count(5)->executor()->create();
         }
 
+        $owners = User::whereIn('role', ['applicant', 'viewer', 'admin'])->get();
         if ($owners->isEmpty()) {
-            $owners = User::factory()->count(3)->applicant()->create();
+            $owners = User::factory()->count(5)->applicant()->create();
         }
 
-        $faker = fake('uk_UA');
-
-        $statusPool = collect(array_merge(
-            array_fill(0, 120, 'new'),
-            array_fill(0, 180, 'in_progress'),
-            array_fill(0, 100, 'done'),
-            array_fill(0, 100, 'closed')
-        ));
+        $statusPool = collect(self::STATUS_DISTRIBUTION)
+            ->flatMap(fn (int $count, string $status) => array_fill(0, $count, $status))
+            ->shuffle();
 
         $prefixes = [
-            'Позов про',
+            'Позов щодо',
+            'Скарга про',
+            'Клопотання про',
+            'Провадження стосовно',
             'Заява щодо',
-            'Скарга на',
-            'Провадження у справі про',
-            'Клопотання про'
         ];
 
         $subjects = [
             'стягнення заборгованості за договором поставки',
-            'розірвання договору оренди комерційного приміщення',
-            'оскарження податкового повідомлення-рішення',
-            'визнання недійсним рішення загальних зборів учасників',
-            'відшкодування збитків за невиконання контракту',
-            'накладення арешту на корпоративні права боржника',
-            'витребування майна із чужого незаконного володіння',
-            'захист ділової репутації юридичної особи',
-            'відновлення строку на апеляційне оскарження',
-            'визнання права власності на об’єкт незавершеного будівництва',
-            'визнання виконавчого напису нотаріуса таким, що не підлягає виконанню',
-            'банкрутство боржника та введення процедури санації',
-            'спростування інформації у засобах масової інформації',
-            'забезпечення позову шляхом арешту нерухомості',
-            'скасування результатів електронних торгів'
-        ];
-
-        $descriptionTemplates = [
-            'Суть спору полягає у {subject}. Представляємо інтереси клієнта у судовому провадженні, готуємо процесуальні документи та координуємо збір доказів.',
-            'Компанія звернулася з питанням щодо {subject}. Наразі триває опрацювання позиції та формування доказової бази для подальших засідань.',
-            'Отримали доручення на супровід справи щодо {subject}. Завдання включає підготовку процесуальних документів і взаємодію зі сторонами спору.',
-            'Клієнт потребує захисту інтересів у спорі про {subject}. Забезпечуємо стратегічне планування, комунікацію з судом та контроль виконання ухвал.'
+            'визнання недійсним рішення тендерного комітету',
+            'розірвання довгострокового договору оренди',
+            'заборону на відчуження промислового обладнання',
+            'поновлення строків виконання судового рішення',
+            'проведення повторної фінансової експертизи',
+            'скасування арешту банківських рахунків',
+            'відшкодування збитків через зрив будівельних робіт',
+            'забезпечення доказів у господарській справі',
+            'повернення авансового платежу за контрактом',
         ];
 
         $progressNotes = [
-            'Підготовлено та подано клопотання про витребування доказів.',
-            'Суд задовольнив клопотання про виклик свідка.',
-            'Отримано ухвалу про відкриття провадження.',
-            'Сформовано та направлено запит до контролюючого органу.',
-            'Підготовлено позицію для судового засідання та погоджено з клієнтом.'
+            'Отримано додаткові документи від заявника.',
+            'Погоджено правову позицію з керівництвом.',
+            'Проведено консультацію зі свідками справи.',
+            'Сформовано та направлено запит до державних органів.',
+            'Уточнено розрахунки збитків та оновлено доказову базу.',
         ];
 
         $completionNotes = [
-            'Суд ухвалив рішення на користь клієнта, стягнуто суму боргу.',
-            'Затверджено мирову угоду, сторони погодили графік платежів.',
-            'Отримано рішення про зняття арешту з майна.',
-            'Постановою суду залишено без розгляду у зв’язку з відмовою від позову.',
-            'Виконавче провадження завершено, кошти перераховано клієнту.'
+            'Справу закрито у зв’язку з виконанням вимог.',
+            'Сторони уклали мирову угоду, матеріали передано в архів.',
+            'Рішення суду виконано, подальших дій не потрібно.',
+            'Адміністративний орган задовольнив вимоги заявника.',
         ];
 
-        $start = Carbon::create(2025, 9, 1, 0, 0, 0, 'UTC');
-        $end = Carbon::create(2025, 9, 30, 23, 59, 59, 'UTC');
+        $actionNotes = [
+            'created' => 'Справу зареєстровано та призначено відповідального виконавця.',
+            'document_added' => 'Додано новий документ до матеріалів справи.',
+            'payment_received' => 'Підтверджено надходження платежу від відповідача.',
+            'reminder_sent' => 'Надіслано нагадування щодо необхідних процесуальних дій.',
+        ];
 
-        for ($i = 0; $i < 500; $i++) {
+        $documentMimeMap = [
+            'pdf' => 'application/pdf',
+            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'jpg' => 'image/jpeg',
+        ];
+
+        $actionRequirements = collect(self::ACTION_TYPES);
+        $caseIndex = 0;
+
+        foreach ($statusPool as $status) {
+            $caseIndex++;
+
             $owner = $owners->random();
             $executor = $executors->random();
-            $status = $statusPool->random();
 
-            $createdAt = Carbon::instance($faker->dateTimeBetween($start, $end));
-            $updatedAt = (clone $createdAt);
+            $createdAt = Carbon::instance($faker->dateTimeBetween('-9 months', '-10 days'));
+            $updatedBoundary = (clone $createdAt)->addMonths(6);
+            $updatedAt = Carbon::instance($faker->dateTimeBetween($createdAt, min($updatedBoundary, now())));
 
-            if (in_array($status, ['in_progress', 'done', 'closed'])) {
-                $updatedAt = Carbon::instance($faker->dateTimeBetween($createdAt, $end));
+            $deadline = null;
+            if (in_array($status, ['new', 'in_progress'], true)) {
+                $deadline = Carbon::instance($faker->dateTimeBetween('+2 weeks', '+6 months'));
+            } elseif ($faker->boolean(40)) {
+                $deadline = Carbon::instance($faker->dateTimeBetween($createdAt, '+2 months'));
             }
 
-            $deadline = $faker->optional(0.7)->dateTimeBetween($createdAt, (clone $createdAt)->addDays(30));
+            $title = sprintf('%s %s', Arr::random($prefixes), Arr::random($subjects));
+            $description = $faker->paragraphs($faker->numberBetween(2, 4), true);
 
-            $subject = Arr::random($subjects);
-            $title = Arr::random($prefixes) . ' ' . $subject;
-            $descriptionTemplate = Arr::random($descriptionTemplates);
-            $description = str_replace('{subject}', $subject, $descriptionTemplate);
-
-            $case = new CaseModel([
-                'title' => $title,
+            $case = CaseModel::create([
+                'title' => Str::ucfirst($title),
                 'description' => $description,
                 'user_id' => $owner->id,
                 'status' => $status,
                 'executor_id' => $executor->id,
-                'claimant_name' => $faker->company(),
+                'claimant_name' => 'ТОВ «' . Str::title($faker->words(2, true)) . '»',
                 'debtor_name' => $faker->name(),
-                'deadline_at' => $deadline ? Carbon::instance($deadline) : null,
-            ]);
-
-            $case->created_at = $createdAt;
-            $case->updated_at = $updatedAt;
-            $case->save();
-
-            CaseAction::create([
-                'case_id' => $case->id,
-                'user_id' => $owner->id,
-                'type' => 'created',
-                'notes' => 'Справу зареєстровано, підготовлено позовну заяву та пакет доказів.',
+                'deadline_at' => $deadline,
                 'created_at' => $createdAt,
-                'updated_at' => $createdAt,
+                'updated_at' => $updatedAt,
             ]);
 
-            if ($status === 'in_progress') {
-                $this->addProgressActions($case, $executor, $createdAt, $progressNotes, $faker);
+            $actions = collect(self::ACTION_TYPES)->shuffle()->take($faker->numberBetween(3, 5));
+            if ($actionRequirements->isNotEmpty()) {
+                $actions = $actions->merge([$actionRequirements->shift()]);
+            }
+            $actions = $actions->prepend('created')->unique()->values();
+
+            $actionMoment = clone $createdAt;
+            foreach ($actions as $type) {
+                $actionMoment = $actionMoment->addDays($faker->numberBetween(3, 18));
+                $note = $actionNotes[$type] ?? $faker->sentence();
+
+                if ($type === 'comment') {
+                    $note = $faker->realText($faker->numberBetween(80, 140));
+                }
+
+                if ($type === 'hearing_scheduled') {
+                    $hearingDate = Carbon::instance($faker->dateTimeBetween('+1 week', '+5 months'));
+                    $note = 'Призначено слухання на ' . $hearingDate->format('d.m.Y') . ' о ' . $hearingDate->format('H:i') . '.';
+                }
+
+                $action = CaseAction::create([
+                    'case_id' => $case->id,
+                    'user_id' => $executor->id,
+                    'type' => $type,
+                    'notes' => $note,
+                    'created_at' => $actionMoment,
+                    'updated_at' => $actionMoment,
+                ]);
+
+                if ($type === 'document_added') {
+                    $extension = Arr::random(['pdf', 'docx', 'jpg']);
+                    $title = Str::title($faker->words($faker->numberBetween(2, 4), true)) . '.' . $extension;
+
+                    CaseDocument::create([
+                        'case_id' => $case->id,
+                        'uploaded_by' => $executor->id,
+                        'title' => $title,
+                        'path' => 'cases/' . $case->id . '/' . Str::uuid() . '.' . $extension,
+                        'file_size' => $faker->numberBetween(40_000, 320_000),
+                        'mime_type' => $documentMimeMap[$extension],
+                        'created_at' => $actionMoment,
+                        'updated_at' => $actionMoment,
+                    ]);
+                }
             }
 
-            if (in_array($status, ['done', 'closed'])) {
-                $this->addCompletionActions($case, $executor, $createdAt, $updatedAt, $completionNotes, $faker, $status);
+            if (in_array($status, ['done', 'closed'], true)) {
+                CaseAction::create([
+                    'case_id' => $case->id,
+                    'user_id' => $executor->id,
+                    'type' => 'comment',
+                    'notes' => Arr::random($completionNotes),
+                    'created_at' => $updatedAt->copy()->addDays(1),
+                    'updated_at' => $updatedAt->copy()->addDays(1),
+                ]);
+            } else {
+                CaseAction::create([
+                    'case_id' => $case->id,
+                    'user_id' => $executor->id,
+                    'type' => 'comment',
+                    'notes' => Arr::random($progressNotes),
+                    'created_at' => $updatedAt->copy()->subDays(2),
+                    'updated_at' => $updatedAt->copy()->subDays(2),
+                ]);
             }
         }
-    }
-
-    protected function addProgressActions(CaseModel $case, User $executor, Carbon $createdAt, array $notesPool, $faker): void
-    {
-        $actionTime = (clone $createdAt)->addDays(rand(2, 8));
-
-        CaseAction::create([
-            'case_id' => $case->id,
-            'user_id' => $executor->id,
-            'type' => 'document_added',
-            'notes' => 'Подано клопотання про забезпечення позову.',
-            'created_at' => $actionTime,
-            'updated_at' => $actionTime,
-        ]);
-
-        if ($faker->boolean(60)) {
-            $reminderTime = (clone $actionTime)->addDays(rand(1, 5));
-            CaseAction::create([
-                'case_id' => $case->id,
-                'user_id' => $executor->id,
-                'type' => 'reminder_sent',
-                'notes' => Arr::random($notesPool),
-                'created_at' => $reminderTime,
-                'updated_at' => $reminderTime,
-            ]);
-        }
-    }
-
-    protected function addCompletionActions(CaseModel $case, User $executor, Carbon $createdAt, Carbon $updatedAt, array $notesPool, $faker, string $status): void
-    {
-        $midPoint = Carbon::instance($faker->dateTimeBetween($createdAt, $updatedAt));
-
-        CaseAction::create([
-            'case_id' => $case->id,
-            'user_id' => $executor->id,
-            'type' => 'document_added',
-            'notes' => 'Додано ухвалу суду про призначення розгляду по суті.',
-            'created_at' => $midPoint,
-            'updated_at' => $midPoint,
-        ]);
-
-        $finalType = $status === 'closed' ? 'asset_arrest' : 'payment_received';
-        $finalNote = Arr::random($notesPool);
-
-        CaseAction::create([
-            'case_id' => $case->id,
-            'user_id' => $executor->id,
-            'type' => $finalType,
-            'notes' => $finalNote,
-            'created_at' => $updatedAt,
-            'updated_at' => $updatedAt,
-        ]);
     }
 }

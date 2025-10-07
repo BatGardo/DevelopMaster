@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @php use Illuminate\Support\Str; @endphp
 
@@ -33,22 +33,26 @@
       </div>
       <div class="card">
         <h3 class="mb-12">{{ __('Recent cases') }}</h3>
-        <table class="table small">
+        <table class="table small" style="width:100%;table-layout:fixed;">
           <thead>
           <tr>
-            <th>{{ __('Title') }}</th>
-            <th>{{ __('Owner') }}</th>
-            <th>{{ __('Executor') }}</th>
-            <th>{{ __('Status') }}</th>
+            <th style="width:40%;">{{ __('Title') }}</th>
+            <th style="width:25%;">{{ __('Owner') }}</th>
+            <th style="width:25%;">{{ __('Executor') }}</th>
+            <th style="width:10%;">{{ __('Status') }}</th>
           </tr>
           </thead>
           <tbody>
           @foreach($recentCases as $recent)
             <tr>
-              <td><a href="{{ route('cases.show', $recent) }}">{{ Str::limit($recent->title, 50) }}</a></td>
-              <td>{{ $recent->owner?->name }}</td>
-              <td>{{ $recent->executor?->name ?? __('Unassigned') }}</td>
-              <td><span class="badge">{{ $recent->status_label }}</span></td>
+              <td style="word-break:break-word;">
+                <a href="{{ route('cases.show', $recent) }}">{{ Str::limit($recent->title, 70) }}</a>
+              </td>
+              <td style="word-break:break-word;">{{ $recent->owner?->name }}</td>
+              <td style="word-break:break-word;">{{ $recent->executor?->name ?? __('Unassigned') }}</td>
+              <td style="white-space:normal;">
+                <span class="badge" style="display:inline-flex;align-items:center;justify-content:center;padding:0 12px;min-width:0;max-width:100%;white-space:normal;">{{ $recent->status_label }}</span>
+              </td>
             </tr>
           @endforeach
           </tbody>
@@ -142,7 +146,7 @@
           <li>
             <div class="timeline-date">{{ optional($activity->created_at)->format('d.m H:i') ?? '&mdash;' }}</div>
             <div class="timeline-content">
-              <strong>{{ $activity->type_label }}</strong> вЂ” {{ $activity->notes ?? __('No comment') }}
+              <strong>{{ $activity->type_label }}</strong> РІР‚вЂќ {{ $activity->notes ?? __('No comment') }}
               <div class="help">{{ __('Case') }}: <a href="{{ route('cases.show', $activity->case_id) }}">#{{ $activity->case_id }}</a></div>
             </div>
           </li>
@@ -188,7 +192,7 @@
             <li>
               <div class="timeline-date">{{ optional($action['at'])->format('d.m H:i') ?? '&mdash;' }}</div>
               <div class="timeline-content">
-                <strong>{{ $action['type'] }}</strong> вЂ” {{ $action['notes'] ?? __('No comment') }}
+                <strong>{{ $action['type'] }}</strong> РІР‚вЂќ {{ $action['notes'] ?? __('No comment') }}
                 <div class="help">{{ __('Case') }} #{{ $action['case_id'] }} - {{ $action['performed_by'] ?? __('System') }}</div>
               </div>
             </li>
@@ -377,3 +381,5 @@
     </script>
   @endif
 @endpush
+
+
