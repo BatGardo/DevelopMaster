@@ -1,0 +1,160 @@
+Doc2 - Технічна документація DevelopMaster
+===========================================
+
+1. Архітектурний огляд
+----------------------
+- **Парадигма**: MVC (Model-View-Controller) з сервісними допоміжними класами.
+- **Рівні**:
+  - *Presentation*: Blade-шаблони (`resources/views`) і готові CSS/JS (`public/assets`).
+  - *Application*: HTTP-контролери (пакет `App\Http\Controllers`) та middleware.
+  - *Domain*: Eloquent-моделі (`App\Models`) з кастомними аксесорами/мутаторами.
+  - *Infrastructure*: міграції, сидери, сервіси експорту, OLAP-конфіг.
+- **Залежності**: Laravel 12, Eloquent ORM, DomPDF, власний логічний шар для аналітики.
+- **Патерни**: Repository не використовується; фільтрація аналітики винесена у статичний хелпер `AnalyticsCaseFilter` (замикання + `when(...)`).
+
+2. Контролери
+-------------
+### 2.1 `AuthController`
+Відповідає за логін/реєстрацію/вихід користувачів. Використовує вбудовані Laravel guard та валідацію (`FormRequest` не застосований, валідація вбудована).
+
+### 2.2 `CaseController`
+- `index`: завантажує справи з фільтрами (регіон, статус, виконавець) + пагінація 12.
+- `mine`: виводить справи користувача (роль `applicant` або `viewer`).
+- `create`/`store`: створення справи з валідацією (включає `region`).
+- `show`: детальний перегляд із завантаженням пов’язаних дій/доків.
+- `addAction`, `uploadDocument`: керування таймлайном та файлами.
+- `exportPdf`: використовує сервіс `CasePdfExporter`.
+
+### 2.3 `AnalyticsController`
+- `index`: агрегує метрики (статуси, тренди, ТОП заявників, сезонність, регіони, OLAP).
+- `records`: комплексний грід з фільтрами, детальною статистикою та графіками.
+- `exportRecords`: делегує експорт Excel.
+- приватні методи: `prepareFilters`, `resolveRegionLabel`, `loadOlapSummary`.
+
+### 2.4 `HomeController`
+- `index`: landing зі списком новин/постів.
+- `dashboard`: логіка побудови карточок/графіків для кожної ролі.
+- `notifications`, `profile`: представлення сповіщень та профілю.
+
+### 2.5 `CaseDocumentController`
+CRUD для об’єктів `CaseDocument`: завантаження, перейменування, видалення, скачування.
+
+### 2.6 `PositionController`
+Адмінський CRUD для довідника посад (`positions` таблиця, використовується юзерами).
+
+3. Моделі та бізнес-логіка
+-------------------------
+### 3.1 `CaseModel`
+- Поля: `title`, `description`, `user_id`, `status`, `executor_id`, `region`, `claimant_name`, `debtor_name`, `deadline_at`.
+- `STATUSES`: `['new','in_progress','done','closed']`.
+- *Boot hooks*: при `saving` намагається витягти регіон зі строки заголовку `(Region, ...)`.
+- `fillable`, `casts`, `appends` (`status_label`, `region_label`).
+- `setRegionAttribute`: нормалізує рядок (trim + title case, порожнє → null).
+- `regionOptions`: вибір унікальних регіонів для фільтрів.
+
+### 3.2 `CaseAction`
+- Зв’язок `belongsTo CaseModel`
+- Типи дій (`created`, `comment`, `document_added` тощо) локалізуються.
+
+### 3.3 `CaseDocument`
+- Поля: `case_id`, `title`, `path`, `file_size`, `mime_type`, `uploaded_by`.
+- Аксесор `human_size` (виводиться у списках).
+
+### 3.4 `User`
+- Ролі (`role`), посилання на `position`.
+- Методи `isAdmin`, `isExecutor`, `isViewer`, `isApplicant`.
+
+4. Валідація та безпека
+-----------------------
+- У контролерах використовується `request()->validate([...])`.
+- Завантаження документів обмежено 20MB (`max:20480`).
+- Маршрути захищені middleware:
+  - `auth`
+  - кастомне `role` (перевірка ролей через `Gate`/policy)
+  - `can:view-analytics` (здібність у `AuthServiceProvider`).
+- XSS: вивід у Blade відображається через `{{ }}` або `nl2br(e(...))`.
+- CSRF: стандартні Laravel токени.
+
+5. База даних та міграції
+-------------------------
+- `cases`: основна таблиця, індекси на `status`, `executor_id`, `region`, `deadline_at`.
+- `case_actions`: зв’язок 1:N зі справами, поля `type`, `notes`, `created_at`.
+- `case_documents`: зберігає шлях до файлу в `storage/app/public`.
+- `positions`, `users`, `posts`, `olap_*` (для інтеграції), `sessions` тощо.
+- Окремий патч `2025_10_06_000050_add_region_to_cases_table.php` створює поле `region`, заповнює його з `title` та додає індекс.
+
+6. Аналітика та агрегації
+-------------------------
+- `AnalyticsController@index` робить RAW-запити:
+  - `COUNT(*)` по статусам.
+  - `to_char(date_trunc('month', created_at), 'YYYY-MM')` для трендів (буквально від PostgreSQL синтаксис; для MySQL потребуватиме адаптації).
+  - Групування за місяцями й регіонами; розрахунок середнього lead time через `diffInDays` та `EXTRACT(EPOCH...)` (у `records`).
+- Сезонність: групування по місяцях + середній lead time.
+- Регіональні метрики: `groupBy` (collection) після витягування, обчислення швидкості (`avg_lead`).
+- OLAP: спроба підключення до `config('olap.connection')`, читання факт-таблиць `fact_user_logins` та `fact_user_registrations`.
+
+7. Експорт Excel (`AnalyticsExcelExporter`)
+-----------------------------------------
+- Генерує HTML-таблиці -> `StreamedResponse` із MIME `application/vnd.ms-excel`.
+- Застосовує фільтри через `AnalyticsCaseFilter` до кількох запитів (`CaseModel`, `CaseAction`, `CaseDocument`).
+- Готує:
+  - Загальні метрики.
+  - Підсумки по статусах та виконавцях.
+  - Денну динаміку, типи дій, розширення документів.
+  - Список справ з регіоном, власником, виконавцем, дедлайнами.
+
+8. Експорт PDF (`CasePdfExporter`)
+----------------------------------
+- Відтворює шаблон `cases/pdf.blade.php`.
+- Завантажує відсутні зв’язки (`loadMissing`), формує документ формат A4.
+
+9. Фронтенд та графіки
+----------------------
+- Chart.js підключається з CDN у шаблонах (аналітика, дашборд, detail view).
+- Дані передаються JSON-серіалізацією (`@json(...)`).
+- Навбар прилипає завдяки `position: sticky`.
+- Клас `container` встановлює падінги; `main` має `mt-20` (20px відступ після шапки).
+
+10. Локалізація
+---------------
+- Файли перекладів статусів: `resources/lang/en/statuses.php`, `resources/lang/uk/statuses.php`.
+- Статичні рядки в шаблонах використовують `{{ __('...') }}`.
+
+11. Сидери (детальніше)
+-----------------------
+- `UkrainianCaseSeeder`: генерує кілька сотень/тисяч справ із різними статусами, випадковими регіонами, діями (мінімум 3), документами (`pdf`, `docx`, `jpg`).
+- `AdditionalUkrainianCasesSeeder`: поповнює базу новими справами з кодами `[SUPP-2025 ###]`. Повертає масив із `title` + `region`, щоб `CaseModel` зберігав регіон без додаткового парсингу.
+- `BackfillCaseRegionsSeeder`: проходить по існуючих записах і нормалізує `region`, заповнюючи значення з заголовку або встановлюючи `null`.
+
+12. Налагодження та обслуговування
+----------------------------------
+- Відсутність кириличних символів у назві файлів/класи дозволяє уникати проблем з Composer.
+- Щоб не виникало помилки `Namespace declaration has to be the very first statement`, слід зберігати Blade/PHP-файли без BOM.
+- Для тісної інтеграції з PostgreSQL (через `to_char`) при переході на MySQL треба адаптувати SQL-вирази (наприклад, `DATE_FORMAT`).
+
+13. Тестування та середовища
+----------------------------
+- `php artisan test` використовує PEST. За вимогою можна сконфігурувати `.env.testing` із SQLite (не забудьте `pdo_sqlite`).
+- CI/CD: запустити `composer test` або `php artisan test`, `npm run build`, `php artisan optimize`.
+
+14. Подальший розвиток
+----------------------
+- Перенести тяжкі агрегації аналітики в матеріалізовані представлення або scheduled jobs.
+- Використати Livewire для інтерактивного фільтрування без перезавантаження сторінки.
+- Розширити OLAP-інтеграцію (ETL job, scheduler через `queue:work`).
+- Додати audit trail модулів користувач-роль через `spatie/laravel-permission` (якщо потрібна гнучка RBAC).
+
+15. Корисні Artisan-команди
+---------------------------
+- `php artisan migrate --seed` — первинний розгорт.
+- `php artisan make:controller` / `make:model -mf` — генерація нових сутностей.
+- `php artisan queue:work --queue=olap-etl` — обробка OLAP черги (залежить від налаштувань `config/olap.php`).
+- `php artisan storage:link` — симлінк для доступу до документів із `public`.
+
+16. Шляхи для кастомізації
+-------------------------
+- Стилі: відредагувати `public/assets/app.css` або підключити Tailwind через Vite.
+- Компоненти: виносити часто вживані блоки в `resources/views/components`.
+- Фільтри: шляхом розширення `AnalyticsCaseFilter` додати нові критерії (наприклад, по дедлайну).
+
+Ця документація призначена для розробників і DevOps-фахівців, що підтримують або розширюють платформу. Вона доповнює загальний документ `Docy.txt` більш глибокою технічною інформацією про складові системи.

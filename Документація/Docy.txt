@@ -1,0 +1,148 @@
+Docy - Документація проєкту DevelopMaster
+===========================================
+
+1. Загальний опис
+-----------------
+DevelopMaster — це платформа керування справами та аналітики на базі Laravel 12, створена для юридичних і адміністративних команд. Система об’єднує реєстрацію справ, призначення виконавців, моніторинг статусів, сховище документів та аналітичні звіти з урахуванням ролей користувачів.
+
+У комплекті постачається демонстраційний набір із 1 500 справ української тематики, розподілених за регіонами, а також панелі приладів, сповіщення й розширена аналітика. Додатково підтримується інтеграція з зовнішнім OLAP-джерелом для агрегованої статистики.
+
+2. Стек технологій
+------------------
+- Backend: Laravel Framework 12.x, PHP ^8.2
+- Frontend: Vite 6, TailwindCSS 4, готові CSS/JS у `public/assets`
+- Автентифікація: сесійна авторизація з рольовими middleware
+- PDF: barryvdh/laravel-dompdf (формування досьє справи)
+- Експорт аналітики: `AnalyticsExcelExporter` (HTML→Excel)
+- Реактивні компоненти: пакети Livewire Flux/Volt (за потреби)
+- Dev-інструменти: Vite, Laravel Sail, PestPHP, Laravel Pint
+
+3. Структура проєкту
+--------------------
+- `app/Http/Controllers`: контролери автентифікації, справ, аналітики, сповіщень, посад
+- `app/Models`: Eloquent-моделі (`CaseModel`, `CaseAction`, `CaseDocument`, `User` тощо)
+- `app/Services/Reports`: сервіси експорту (PDF, Excel)
+- `app/Support`: допоміжні класи для фільтрації (`AnalyticsCaseFilter`)
+- `resources/views`: Blade-шаблони (лейаут, справи, аналітика, дашборд, сповіщення)
+- `database/migrations`: схеми таблиць, включно з полем `region` у `cases`
+- `database/seeders`: сидери для посад, користувачів, демо-справ
+- `public/assets`: зібрані стилі та скрипти
+- `config/olap.php`: конфігурація зовнішнього OLAP-з’єднання
+
+4. Ролі та доступ
+-----------------
+- `admin`: повний доступ (дашборд, реєстр справ, створення, аналітика, посади)
+- `executor`: перегляд/керування справами, додавання дій/документів, аналітика
+- `viewer`: перегляд усіх справ у режимі "read-only", дашборд, сповіщення
+- `applicant`: створення та перегляд власних справ
+
+Маршрути оголошені в `routes/web.php`, згруповані за middleware `auth`, `role` та здібністю `can:view-analytics`.
+
+5. Налаштування середовища
+--------------------------
+1. Скопіюйте `.env.example` у `.env` та задайте:
+   - `APP_URL`, `APP_ENV`, `APP_KEY`
+   - Параметри бази даних (MySQL/PostgreSQL)
+   - Поштові налаштування для сповіщень (за потреби)
+   - `OLAP_*`, якщо підключається зовнішній OLAP (див. `config/olap.php`)
+2. Додатковий приклад для OLAP зберігається у `env/olap.env`.
+
+6. Встановлення
+---------------
+1. PHP-залежності:
+   ```
+   composer install
+   ```
+2. Node-залежності:
+   ```
+   npm install
+   ```
+3. Ключ застосунку:
+   ```
+   php artisan key:generate
+   ```
+4. Міграції:
+   ```
+   php artisan migrate
+   ```
+
+7. Сидери та демо-дані
+----------------------
+- `Database\Seeders\UkrainianCaseSeeder`: скидає таблиці справ та створює 1 500 записів з діями і документами.
+  ```
+  php artisan db:seed --class=UkrainianCaseSeeder
+  ```
+- `Database\Seeders\AdditionalUkrainianCasesSeeder`: додає додаткові справи без очищення наявних даних.
+  ```
+  php artisan db:seed --class=AdditionalUkrainianCasesSeeder
+  ```
+- `Database\Seeders\BackfillCaseRegionsSeeder`: нормалізує поле `region` у legacy-записах.
+  ```
+  php artisan db:seed --class=BackfillCaseRegionsSeeder
+  ```
+
+Головний `DatabaseSeeder` також створює ролі, посадові позиції, демонстраційних користувачів і пости.
+
+8. Запуск застосунку
+--------------------
+- Режим розробки:
+  - `php artisan serve`
+  - `php artisan queue:listen`
+  - `npm run dev`
+  - Комбіновано: `composer run dev`
+- Продакшн:
+  - `npm run build`
+  - `php artisan optimize`
+  - за потреби: `php artisan config:cache`, `php artisan route:cache`
+
+9. Основні можливості
+---------------------
+- Дашборд (`/dashboard`): KPI за роллю, останні справи та дії, OLAP-графіки.
+- Реєстр справ (`/cases`): фільтри за статусом, регіоном, виконавцем; сортування, пагінація, PDF-експорт.
+- Деталі справи (`/cases/{case}`): таймлайн дій, документи, нотатки, PDF.
+- Аналітика (`/analytics`, `/analytics/records`): графіки статусів, тренди, регіональна розбивка, експорт в Excel.
+- Сповіщення (`/notifications`): останні дії, що стосуються справ, із зазначенням регіону.
+- Керування посадами (`/positions`): CRUD для адміністратора.
+
+10. Експорт звітів
+------------------
+- PDF: `CasePdfExporter` + шаблон `resources/views/cases/pdf.blade.php`.
+- Excel: `AnalyticsExcelExporter` (HTML-таблиця, що завантажується як `.xls`).
+
+11. Робота з регіонами
+----------------------
+- `CaseModel::setRegionAttribute` нормалізує введене значення (trim + Title Case).
+- `region_label` повертає локалізовану назву або "Невизначено".
+- Аналітика використовує нормалізовані регіони для побудови графіків і розрахунку середньої тривалості.
+
+12. Стилі та фронтенд
+---------------------
+- Основний лейаут: `resources/views/layouts/app.blade.php` із прилипаючим navbar.
+- Зкомпільовані стилі: `public/assets/app.css` (установлює фон, допоміжні класи).
+- Скрипти: `public/assets/app.js`. Додаткові інтеракції можна реалізувати через Vite.
+
+13. Тестування та якість
+------------------------
+- Тести: `php artisan test` (Pest). Для повного запуску встановіть розширення `pdo_sqlite`.
+- Лінтер: `vendor/bin/pint`.
+- Очищення кешів: `php artisan optimize:clear`.
+
+14. Розгортання
+----------------
+1. Налаштувати `.env`.
+2. `composer install --no-dev --optimize-autoloader`.
+3. `php artisan migrate --force`.
+4. (Опціонально) `php artisan db:seed --class=UkrainianCaseSeeder`.
+5. `npm ci && npm run build`.
+6. `php artisan optimize` та інші кеші за потреби.
+7. Налаштувати воркер черги, якщо використовуються сповіщення чи OLAP-ETL.
+
+15. Корисні шляхи
+-----------------
+- Компоненти шапки: `resources/views/components/layouts/app`
+- Аналітика: `resources/views/analytics*.blade.php`
+- Справи: `resources/views/cases/*.blade.php`
+- Локалізація статусів: `resources/lang/en/statuses.php`, `resources/lang/uk/statuses.php`
+- Сидери: `database/seeders/*.php`
+
+За потреби адаптуйте контролери, сервіси й Blade-шаблони, а також Tailwind/Vite-конфігурацію під вимоги конкретної інсталяції.

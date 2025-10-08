@@ -66,7 +66,7 @@ class AnalyticsController extends Controller
                 ];
             });
 
-        $casesForAnalysis = CaseModel::select('id', 'title', 'created_at', 'deadline_at')
+        $casesForAnalysis = CaseModel::select('id', 'title', 'region', 'created_at', 'deadline_at')
             ->whereNotNull('created_at')
             ->get();
 
@@ -116,8 +116,8 @@ class AnalyticsController extends Controller
             ->toArray();
 
         $regionStats = $casesForAnalysis
-            ->groupBy(fn (CaseModel $case) => $this->extractRegionFromTitle($case->title))
-            ->map(function ($group, $region) {
+            ->groupBy(fn (CaseModel $case) => $this->resolveRegionLabel($case->region))
+            ->map(function ($group, $regionLabel) {
                 $leadValues = $group->map(function (CaseModel $case) {
                     return $case->deadline_at ? $case->deadline_at->diffInDays($case->created_at) : null;
                 })->filter();
@@ -126,7 +126,7 @@ class AnalyticsController extends Controller
                 $avgLead = $avgLeadRaw !== null ? round(max($avgLeadRaw, 0), 1) : null;
 
                 return [
-                    'region' => $region,
+                    'region' => $regionLabel,
                     'total' => $group->count(),
                     'avg_lead' => $avgLead,
                 ];
@@ -292,6 +292,8 @@ class AnalyticsController extends Controller
             'statuses' => CaseModel::statusOptions(),
             'executors' => User::whereIn('role', ['executor', 'admin'])->orderBy('name')->get(),
             'owners' => User::orderBy('name')->get(),
+            'regions' => CaseModel::regionOptions(),
+            'hasUnspecifiedRegion' => CaseModel::whereNull('region')->exists(),
         ];
 
         $olap = $this->loadOlapSummary();
@@ -328,6 +330,7 @@ class AnalyticsController extends Controller
             'status' => ['nullable', 'string', 'max:50'],
             'executor' => ['nullable', 'integer', 'exists:users,id'],
             'owner' => ['nullable', 'integer', 'exists:users,id'],
+            'region' => ['nullable', 'string', 'max:120'],
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date'],
         ]);
@@ -335,6 +338,7 @@ class AnalyticsController extends Controller
         $status = $validated['status'] ?? null;
         $executor = $validated['executor'] ?? null;
         $owner = $validated['owner'] ?? null;
+        $region = $validated['region'] ?? null;
 
         if ($status === '') {
             $status = null;
@@ -344,6 +348,13 @@ class AnalyticsController extends Controller
         }
         if ($owner === '') {
             $owner = null;
+        }
+        if ($region === '') {
+            $region = null;
+        } elseif ($region === '__null__') {
+            // keep sentinel for filtering null regions
+        } elseif ($region !== null) {
+            $region = Str::of($region)->squish()->title()->value();
         }
 
         $hasDateFilter = $request->filled('date_from') || $request->filled('date_to');
@@ -359,6 +370,7 @@ class AnalyticsController extends Controller
                 'status' => $status,
                 'executor' => $executor,
                 'owner' => $owner,
+                'region' => $region,
                 'date_from' => $dateFrom,
                 'date_to' => $dateTo,
             ],
@@ -366,21 +378,26 @@ class AnalyticsController extends Controller
                 'status' => $status,
                 'executor' => $executor,
                 'owner' => $owner,
+                'region' => $region,
                 'date_from' => $dateFrom?->toDateString(),
                 'date_to' => $dateTo?->toDateString(),
             ],
         ];
     }
 
-    protected function extractRegionFromTitle(string $title): string
+    protected function resolveRegionLabel(?string $region): string
     {
-        if (preg_match('/\\(([^,]+),/u', $title, $matches)) {
-            $region = Str::ucfirst(Str::lower(trim($matches[1])));
-
-            return $region;
+        if ($region === null) {
+            return __('Not specified');
         }
 
-        return __('Not specified');
+        $normalized = Str::of($region)->squish();
+
+        if ($normalized->isEmpty()) {
+            return __('Not specified');
+        }
+
+        return $normalized->title()->value();
     }
 
     protected function loadOlapSummary(): array
@@ -416,3 +433,4 @@ class AnalyticsController extends Controller
         }
     }
 }
+

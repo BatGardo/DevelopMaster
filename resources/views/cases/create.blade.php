@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('content')
   <h2 class="mb-16">{{ __('Create case') }}</h2>
@@ -27,6 +27,24 @@
             <option value="{{ $executor->id }}" @selected(old('executor_id') == $executor->id)>{{ $executor->name }}</option>
           @endforeach
         </select>
+      </div>
+      <div class="field">
+        <label class="label">{{ __('Region') }}</label>
+        <input
+          class="input"
+          name="region"
+          value="{{ old('region') }}"
+          @if(!empty($regionOptions)) list="case-region-options" @endif
+          placeholder="{{ __('e.g. Kyiv') }}"
+        >
+        @if(!empty($regionOptions))
+          <datalist id="case-region-options">
+            @foreach($regionOptions as $region)
+              <option value="{{ $region }}"></option>
+            @endforeach
+          </datalist>
+          <div class="help">{{ __('Start typing to reuse an existing region.') }}</div>
+        @endif
       </div>
       <div class="field">
         <label class="label">{{ __('Claimant') }}</label>

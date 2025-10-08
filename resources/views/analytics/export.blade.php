@@ -103,6 +103,7 @@
       <tr>
         <th>{{ __('ID') }}</th>
         <th>{{ __('Title') }}</th>
+        <th>{{ __('Region') }}</th>
         <th>{{ __('Status') }}</th>
         <th>{{ __('Owner') }}</th>
         <th>{{ __('Executor') }}</th>
@@ -118,6 +119,7 @@
         <tr>
           <td>{{ $case['id'] }}</td>
           <td>{{ $case['title'] }}</td>
+          <td>{{ $case['region'] }}</td>
           <td>{{ $case['status'] }}</td>
           <td>{{ $case['owner'] }}</td>
           <td>{{ $case['executor'] }}</td>

@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('content')
   <div class="flex justify-between items-center mb-16">
@@ -7,7 +7,7 @@
   </div>
 
   <div class="card mb-20">
-    <form method="GET" class="grid grid-4 gap-12">
+    <form method="GET" class="grid grid-5 gap-12">
       <div class="field">
         <label class="label" for="status">{{ __('Status') }}</label>
         <select class="input" id="status" name="status">
@@ -36,13 +36,25 @@
         </select>
       </div>
       <div class="field">
+        <label class="label" for="region">{{ __('Region') }}</label>
+        <select class="input" id="region" name="region">
+          <option value="">{{ __('All') }}</option>
+          @if(!empty($filterOptions['hasUnspecifiedRegion']))
+            <option value="__null__" @selected($filters['region'] === '__null__')>{{ __('Not specified') }}</option>
+          @endif
+          @foreach($filterOptions['regions'] as $region)
+            <option value="{{ $region }}" @selected($filters['region'] === $region)>{{ $region }}</option>
+          @endforeach
+        </select>
+      </div>
+      <div class="field">
         <label class="label">{{ __('Date range') }}</label>
         <div class="grid grid-2">
           <input class="input" type="date" name="date_from" value="{{ $filters['date_from'] }}">
           <input class="input" type="date" name="date_to" value="{{ $filters['date_to'] }}">
         </div>
       </div>
-      <div class="field col-span-4 mt-4">
+      <div class="field col-span-5 mt-4">
         <button class="btn">{{ __('Apply filters') }}</button>
         <a class="btn btn-ghost" href="{{ route('analytics.records') }}">{{ __('Reset') }}</a>
       </div>
@@ -143,6 +155,7 @@
         <thead>
         <tr>
           <th>{{ __('Title') }}</th>
+          <th>{{ __('Region') }}</th>
           <th>{{ __('Status') }}</th>
           <th>{{ __('Owner') }}</th>
           <th>{{ __('Executor') }}</th>
@@ -158,6 +171,7 @@
         @forelse($cases as $case)
           <tr>
             <td>{{ $case->title }}</td>
+            <td>{{ $case->region_label }}</td>
             <td><span class="badge">{{ $case->status_label }}</span></td>
             <td>{{ $case->owner?->name ?? __('Unknown') }}</td>
             <td>{{ $case->executor?->name ?? __('Unassigned') }}</td>
@@ -169,7 +183,7 @@
             <td><a class="btn btn-ghost" href="{{ route('cases.show', $case) }}">{{ __('Open') }}</a></td>
           </tr>
         @empty
-          <tr><td colspan="10" class="help">{{ __('No cases match the current filters.') }}</td></tr>
+          <tr><td colspan="11" class="help">{{ __('No cases match the current filters.') }}</td></tr>
         @endforelse
         </tbody>
       </table>
@@ -268,6 +282,10 @@
     }
   </script>
 @endpush
+
+
+
+
 
 
 

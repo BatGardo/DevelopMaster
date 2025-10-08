@@ -11,8 +11,18 @@ class AnalyticsCaseFilter
         return $query
             ->when($filters['status'] ?? null, fn (Builder $builder, $status) => $builder->where('status', $status))
             ->when($filters['executor'] ?? null, fn (Builder $builder, $executor) => $builder->where('executor_id', $executor))
+            ->when($filters['region'] ?? null, function (Builder $builder, $region) {
+                if ($region === '__null__') {
+                    $builder->whereNull('region');
+
+                    return;
+                }
+
+                $builder->where('region', $region);
+            })
             ->when($filters['owner'] ?? null, fn (Builder $builder, $owner) => $builder->where('user_id', $owner))
             ->when($filters['date_from'] ?? null, fn (Builder $builder, $from) => $builder->where('created_at', '>=', $from))
             ->when($filters['date_to'] ?? null, fn (Builder $builder, $to) => $builder->where('created_at', '<=', $to));
     }
 }
+
