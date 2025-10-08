@@ -145,7 +145,8 @@ class AdditionalUkrainianCasesSeeder extends Seeder
                 $executor = $executors->random();
                 $assignedExecutorId = ($status === 'new' && $faker->boolean(40)) ? null : $executor->id;
 
-                $title = sprintf('[SUPP-2025 %03d] %s', $sequence, $this->buildTitle($faker));
+                $titleData = $this->buildTitle($faker);
+                $title = sprintf('[SUPP-2025 %03d] %s', $sequence, $titleData['title']);
                 if (CaseModel::where('title', $title)->exists()) {
                     continue;
                 }
@@ -156,6 +157,7 @@ class AdditionalUkrainianCasesSeeder extends Seeder
                     'user_id' => $owner->id,
                     'executor_id' => $assignedExecutorId,
                     'title' => $title,
+                    'region' => $titleData['region'],
                     'description' => $description,
                     'status' => $status,
                     'claimant_name' => Arr::random($this->claimants),
@@ -171,13 +173,17 @@ class AdditionalUkrainianCasesSeeder extends Seeder
         }
     }
 
-    private function buildTitle($faker): string
+    private function buildTitle($faker): array
     {
         $topic = Arr::random($this->caseTopics);
         $region = Arr::random(['Kyiv', 'Lviv', 'Odesa', 'Dnipro', 'Kharkiv', 'Mykolaiv', 'Zakarpattia', 'Vinnytsia']);
+        $normalizedRegion = $this->normalizeRegion($region);
         $ref = strtoupper($faker->bothify('ref-??##'));
 
-        return ucfirst($topic) . ' (' . $region . ', ' . $ref . ')';
+        return [
+            'title' => ucfirst($topic) . ' (' . $normalizedRegion . ', ' . $ref . ')',
+            'region' => $normalizedRegion,
+        ];
     }
 
     private function composeDescription(): string
@@ -240,5 +246,9 @@ class AdditionalUkrainianCasesSeeder extends Seeder
         $action->updated_at = $timestamp;
         $action->save();
     }
-}
 
+    private function normalizeRegion(string $value): string
+    {
+        return Str::of($value)->squish()->title()->value();
+    }
+}

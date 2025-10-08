@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @php use Illuminate\Support\Str; @endphp
 
@@ -36,10 +36,11 @@
         <table class="table small" style="width:100%;table-layout:fixed;">
           <thead>
           <tr>
-            <th style="width:40%;">{{ __('Title') }}</th>
-            <th style="width:25%;">{{ __('Owner') }}</th>
-            <th style="width:25%;">{{ __('Executor') }}</th>
-            <th style="width:10%;">{{ __('Status') }}</th>
+            <th style="width:32%;">{{ __('Title') }}</th>
+            <th style="width:20%;">{{ __('Region') }}</th>
+            <th style="width:22%;">{{ __('Owner') }}</th>
+            <th style="width:18%;">{{ __('Executor') }}</th>
+            <th style="width:8%;">{{ __('Status') }}</th>
           </tr>
           </thead>
           <tbody>
@@ -48,6 +49,7 @@
               <td style="word-break:break-word;">
                 <a href="{{ route('cases.show', $recent) }}">{{ Str::limit($recent->title, 70) }}</a>
               </td>
+              <td style="word-break:break-word;">{{ $recent->region_label }}</td>
               <td style="word-break:break-word;">{{ $recent->owner?->name }}</td>
               <td style="word-break:break-word;">{{ $recent->executor?->name ?? __('Unassigned') }}</td>
               <td style="white-space:normal;">
@@ -105,6 +107,7 @@
           <tr>
             <th>ID</th>
             <th>{{ __('Title') }}</th>
+            <th>{{ __('Region') }}</th>
             <th>{{ __('Owner') }}</th>
             <th>{{ __('Deadline') }}</th>
           </tr>
@@ -114,6 +117,7 @@
             <tr>
               <td>{{ $case->id }}</td>
               <td><a href="{{ route('cases.show', $case) }}">{{ Str::limit($case->title, 40) }}</a></td>
+              <td>{{ $case->region_label }}</td>
               <td>{{ $case->owner?->name }}</td>
               <td>{{ $case->deadline_at?->format('Y-m-d') ?? '&mdash;' }}</td>
             </tr>
@@ -130,6 +134,7 @@
               <div class="timeline-content">
                 <a href="{{ route('cases.show', $case) }}">{{ Str::limit($case->title, 50) }}</a>
                 <span class="help">{{ __('Owner') }}: {{ $case->owner?->name ?? '&mdash;' }}</span>
+                <span class="help">{{ __('Region') }}: {{ $case->region_label }}</span>
               </div>
             </li>
           @empty
@@ -146,8 +151,8 @@
           <li>
             <div class="timeline-date">{{ optional($activity->created_at)->format('d.m H:i') ?? '&mdash;' }}</div>
             <div class="timeline-content">
-              <strong>{{ $activity->type_label }}</strong> РІР‚вЂќ {{ $activity->notes ?? __('No comment') }}
-              <div class="help">{{ __('Case') }}: <a href="{{ route('cases.show', $activity->case_id) }}">#{{ $activity->case_id }}</a></div>
+              <strong>{{ $activity->type_label }}</strong> — {{ $activity->notes ?? __('No comment') }}
+              <div class="help">{{ __('Case') }}: <a href="{{ route('cases.show', $activity->case_id) }}">#{{ $activity->case_id }}</a> — {{ __('Region') }}: {{ $activity->case?->region_label ?? __('Not specified') }}</div>
             </div>
           </li>
         @empty
@@ -192,8 +197,9 @@
             <li>
               <div class="timeline-date">{{ optional($action['at'])->format('d.m H:i') ?? '&mdash;' }}</div>
               <div class="timeline-content">
-                <strong>{{ $action['type'] }}</strong> РІР‚вЂќ {{ $action['notes'] ?? __('No comment') }}
+                <strong>{{ $action['type'] }}</strong> — {{ $action['notes'] ?? __('No comment') }}
                 <div class="help">{{ __('Case') }} #{{ $action['case_id'] }} - {{ $action['performed_by'] ?? __('System') }}</div>
+                <div class="help">{{ __('Region') }}: {{ $action['case_region'] ?? __('Not specified') }}</div>
               </div>
             </li>
           @endforeach
@@ -233,6 +239,7 @@
             <th>{{ __('Title') }}</th>
             <th>{{ __('Status') }}</th>
             <th>{{ __('Executor') }}</th>
+            <th>{{ __('Region') }}</th>
             <th>{{ __('Deadline') }}</th>
           </tr>
           </thead>
@@ -243,6 +250,7 @@
               <td><a href="{{ route('cases.show', $case) }}">{{ Str::limit($case->title, 50) }}</a></td>
               <td><span class="badge">{{ $case->status_label }}</span></td>
               <td>{{ $case->executor?->name ?? __('Unassigned') }}</td>
+              <td>{{ $case->region_label }}</td>
               <td>{{ $case->deadline_at?->format('Y-m-d') ?? '&mdash;' }}</td>
             </tr>
           @endforeach
@@ -256,6 +264,7 @@
             <li>
               <div class="timeline-date">{{ $case->deadline_at?->format('d M') ?? '&mdash;' }}</div>
               <div class="timeline-content"><a href="{{ route('cases.show', $case) }}">{{ Str::limit($case->title, 60) }}</a></div>
+              <span class="help">{{ __('Region') }}: {{ $case->region_label }}</span>
             </li>
           @endforeach
         </ul>
@@ -381,5 +390,4 @@
     </script>
   @endif
 @endpush
-
 

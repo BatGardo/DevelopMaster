@@ -51,6 +51,7 @@ class AnalyticsExcelExporter
                 return [
                     'id' => $case->id,
                     'title' => $case->title,
+                    'region' => $case->region_label,
                     'status' => __('statuses.' . $case->status),
                     'owner' => $case->owner?->name ?? __('Unknown'),
                     'executor' => $case->executor?->name ?? __('Unassigned'),

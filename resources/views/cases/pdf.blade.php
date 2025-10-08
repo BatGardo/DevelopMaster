@@ -25,6 +25,7 @@
       <tr><th>{{ __('Status') }}</th><td>{{ $case->status_label }}</td></tr>
       <tr><th>{{ __('Owner') }}</th><td>{{ $case->owner?->name ?? __('Unknown') }}</td></tr>
       <tr><th>{{ __('Executor') }}</th><td>{{ $case->executor?->name ?? __('Unassigned') }}</td></tr>
+      <tr><th>{{ __('Region') }}</th><td>{{ $case->region_label }}</td></tr>
       <tr><th>{{ __('Claimant') }}</th><td>{{ $case->claimant_name ?? '-' }}</td></tr>
       <tr><th>{{ __('Debtor') }}</th><td>{{ $case->debtor_name ?? '-' }}</td></tr>
       <tr><th>{{ __('Deadline') }}</th><td>{{ $case->deadline_at?->format('Y-m-d') ?? '-' }}</td></tr>

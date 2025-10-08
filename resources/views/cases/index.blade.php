@@ -4,7 +4,8 @@
   <h2 class="mb-16">{{ __('Case portfolio') }}</h2>
 
   <div class="card mb-16">
-    <form class="grid grid-3" method="GET">
+    @php $currentRegion = $selectedRegion ?? request('region'); @endphp
+    <form method="GET" class="grid grid-4 gap-12">
       <div>
         <label class="label">{{ __('Executor') }}</label>
         <select class="input" name="executor">
@@ -20,6 +21,18 @@
           <option value="">{{ __('Any status') }}</option>
           @foreach(\App\Models\CaseModel::statusOptions() as $key => $label)
             <option value="{{ $key }}" @selected(request('status') == $key)>{{ $label }}</option>
+          @endforeach
+        </select>
+      </div>
+      <div>
+        <label class="label">{{ __('Region') }}</label>
+        <select class="input" name="region">
+          <option value="">{{ __('Any region') }}</option>
+          @if(!empty($hasUnspecifiedRegion))
+            <option value="__null__" @selected($currentRegion === '__null__')>{{ __('Not specified') }}</option>
+          @endif
+          @foreach(($regions ?? []) as $region)
+            <option value="{{ $region }}" @selected($currentRegion === $region)>{{ $region }}</option>
           @endforeach
         </select>
       </div>
@@ -39,6 +52,7 @@
         <th><a href="{{ route('cases.index', array_merge(request()->all(), ['sort' => 'id', 'direction' => $sort === 'id' && $direction === 'asc' ? 'desc' : 'asc'])) }}">ID</a></th>
         <th>{{ __('Title') }}</th>
         <th>{{ __('Executor') }}</th>
+        <th>{{ __('Region') }}</th>
         <th>{{ __('Status') }}</th>
         <th>{{ __('Deadline') }}</th>
         <th></th>
@@ -50,20 +64,16 @@
           <td>{{ $case->id }}</td>
           <td>{{ \Illuminate\Support\Str::limit($case->title, 60) }}</td>
           <td>{{ $case->executor?->name ?? __('Unassigned') }}</td>
+          <td>{{ $case->region_label }}</td>
           <td><span class="badge">{{ $case->status_label }}</span></td>
-          <td>{{ $case->deadline_at?->format('Y-m-d') ?? 'РІР‚вЂќ' }}</td>
+          <td>{{ $case->deadline_at?->format('Y-m-d') ?? __('N/A') }}</td>
           <td><a class="btn" href="{{ route('cases.show', $case) }}">{{ __('Open') }}</a></td>
         </tr>
       @empty
-        <tr><td colspan="6" class="help">{{ __('No cases satisfy your filters yet.') }}</td></tr>
+        <tr><td colspan="7" class="help">{{ __('No cases satisfy your filters yet.') }}</td></tr>
       @endforelse
       </tbody>
     </table>
     <div class="mt-20">{{ $cases->links() }}</div>
   </div>
 @endsection
-
-
-
-
-

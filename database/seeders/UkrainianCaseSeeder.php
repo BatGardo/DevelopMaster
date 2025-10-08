@@ -31,6 +31,12 @@ class UkrainianCaseSeeder extends Seeder
         'reminder_sent',
     ];
 
+    private array $regionPool = [
+        'Kyiv', 'Lviv', 'Odesa', 'Dnipro', 'Kharkiv', 'Mykolaiv', 'Zaporizhzhia', 'Chernihiv',
+        'Sumy', 'Poltava', 'Cherkasy', 'Vinnytsia', 'Zhytomyr', 'Khmelnytskyi', 'Ivano-Frankivsk',
+        'Ternopil', 'Chernivtsi', 'Rivne', 'Volyn', 'Zakarpattia', 'Kirovohrad', 'Luhansk'
+    ];
+
     public function run(): void
     {
         DB::statement('TRUNCATE TABLE case_documents, case_actions, cases RESTART IDENTITY CASCADE');
@@ -120,11 +126,13 @@ class UkrainianCaseSeeder extends Seeder
                 $deadline = Carbon::instance($faker->dateTimeBetween($createdAt, '+2 months'));
             }
 
-            $title = sprintf('%s %s', Arr::random($prefixes), Arr::random($subjects));
+            $region = $this->normalizeRegion(Arr::random($this->regionPool));
+            $title = sprintf('%s %s (%s)', Arr::random($prefixes), Arr::random($subjects), $region);
             $description = $faker->paragraphs($faker->numberBetween(2, 4), true);
 
             $case = CaseModel::create([
                 'title' => Str::ucfirst($title),
+                'region' => $region,
                 'description' => $description,
                 'user_id' => $owner->id,
                 'status' => $status,
@@ -202,5 +210,10 @@ class UkrainianCaseSeeder extends Seeder
                 ]);
             }
         }
+    }
+
+    private function normalizeRegion(string $value): string
+    {
+        return Str::of($value)->squish()->title()->value();
     }
 }

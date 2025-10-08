@@ -60,6 +60,7 @@ class HomeController extends Controller
                 return [
                     'case_id' => $action->case_id,
                     'case_title' => $action->case?->title,
+                    'case_region' => $action->case?->region_label,
                     'type' => __('actions.' . $action->type),
                     'notes' => $action->notes,
                     'performed_by' => $action->user?->name,
@@ -197,6 +198,7 @@ class HomeController extends Controller
                     'notes' => $action->notes,
                     'performed_by' => $action->user?->name,
                     'at' => $action->created_at,
+                    'case_region' => $action->case?->region_label,
                 ];
             });
 
@@ -247,3 +249,4 @@ class HomeController extends Controller
         ];
     }
 }
+

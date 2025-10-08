@@ -3,12 +3,12 @@
 namespace Database\Factories;
 
 use App\Models\CaseModel;
-use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Arr;
-use Illuminate\Support\Str;
 use Faker\Factory as FakerFactory;
 use Faker\Generator as FakerGenerator;
+use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 class CaseModelFactory extends Factory
 {
@@ -29,13 +29,14 @@ class CaseModelFactory extends Factory
             $deadline = Carbon::instance($this->faker->dateTimeBetween($createdAt, '+2 months'));
         }
 
-        $claimant = 'ТОВ «' . Str::title($this->faker->words(2, true)) . '»';
+        $claimant = Str::title($this->faker->words(2, true));
         $debtor = $this->faker->name();
 
         return [
             'title' => Str::ucfirst($this->faker->sentence(6)),
             'description' => $this->faker->paragraphs($this->faker->numberBetween(2, 4), true),
             'status' => $status,
+            'region' => Arr::random(['Kyiv', 'Lviv', 'Odesa', 'Dnipro', 'Kharkiv', 'Mykolaiv', 'Zakarpattia', 'Vinnytsia']),
             'claimant_name' => $claimant,
             'debtor_name' => $debtor,
             'deadline_at' => $deadline,
@@ -49,3 +50,4 @@ class CaseModelFactory extends Factory
         return FakerFactory::create('uk_UA');
     }
 }
+

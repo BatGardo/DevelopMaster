@@ -17,6 +17,7 @@
       <p class="mb-8"><b>{{ __('Claimant') }}:</b> {{ $case->claimant_name ?? '—' }}</p>
       <p class="mb-8"><b>{{ __('Debtor') }}:</b> {{ $case->debtor_name ?? '—' }}</p>
       <p class="mb-8"><b>{{ __('Executor') }}:</b> {{ $case->executor?->name ?? __('Unassigned') }}</p>
+      <p class="mb-8"><b>{{ __('Region') }}:</b> {{ $case->region_label }}</p>
       <p class="mb-8"><b>{{ __('Deadline') }}:</b> {{ $case->deadline_at?->format('Y-m-d') ?? '—' }}</p>
       <p class="mb-8"><b>{{ __('Description') }}:</b> {!! nl2br(e($case->description)) !!}</p>
     </div>
@@ -125,3 +126,4 @@
     @endif
   </div>
 @endsection
+

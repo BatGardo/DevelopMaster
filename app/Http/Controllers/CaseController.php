@@ -10,6 +10,7 @@ use App\Services\Reports\CasePdfExporter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class CaseController extends Controller
 {
@@ -34,10 +35,34 @@ class CaseController extends Controller
             $query->where('status', $status);
         }
 
+        $selectedRegion = null;
+        $regionInput = $request->query('region');
+
+        if ($regionInput !== null && $regionInput !== '') {
+            if ($regionInput === '__null__') {
+                $query->whereNull('region');
+                $selectedRegion = '__null__';
+            } else {
+                $normalizedRegion = Str::of($regionInput)->squish()->title()->value();
+                $query->where('region', $normalizedRegion);
+                $selectedRegion = $normalizedRegion;
+            }
+        }
+
         $cases = $query->orderBy($sort, $direction)->paginate(12)->withQueryString();
         $executors = User::whereIn('role', ['executor', 'admin'])->orderBy('name')->get();
+        $regions = CaseModel::regionOptions();
+        $hasUnspecifiedRegion = CaseModel::whereNull('region')->exists();
 
-        return view('cases.index', compact('cases', 'sort', 'direction', 'executors'));
+        return view('cases.index', compact(
+            'cases',
+            'sort',
+            'direction',
+            'executors',
+            'regions',
+            'hasUnspecifiedRegion',
+            'selectedRegion'
+        ));
     }
 
     public function mine(Request $request)
@@ -67,8 +92,9 @@ class CaseController extends Controller
         Gate::authorize('create-case');
 
         $executors = User::whereIn('role', ['executor', 'admin'])->orderBy('name')->get();
+        $regionOptions = CaseModel::regionOptions();
 
-        return view('cases.create', compact('executors'));
+        return view('cases.create', compact('executors', 'regionOptions'));
     }
 
     public function store(Request $request)
@@ -79,6 +105,7 @@ class CaseController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'executor_id' => ['nullable', 'exists:users,id'],
+            'region' => ['nullable', 'string', 'max:120'],
             'claimant_name' => ['nullable', 'string', 'max:255'],
             'debtor_name' => ['nullable', 'string', 'max:255'],
             'deadline_at' => ['nullable', 'date'],
@@ -98,7 +125,7 @@ class CaseController extends Controller
 
         if ($request->hasFile('documents')) {
             foreach ($request->file('documents') as $file) {
-                $path = $file->store('cases/'.$case->id, 'public');
+                $path = $file->store('cases/' . $case->id, 'public');
                 $document = CaseDocument::create([
                     'case_id' => $case->id,
                     'uploaded_by' => $request->user()->id,
@@ -148,7 +175,6 @@ class CaseController extends Controller
         return back()->with('ok', __('Action added successfully.'));
     }
 
-
     public function exportPdf(Request $request, CaseModel $case, CasePdfExporter $exporter)
     {
         Gate::authorize('view-case', $case);
@@ -166,7 +192,7 @@ class CaseController extends Controller
         $request->validate(['file' => ['required', 'file', 'max:20480']]);
 
         $uploadedFile = $request->file('file');
-        $path = $uploadedFile->store('cases/'.$case->id, 'public');
+        $path = $uploadedFile->store('cases/' . $case->id, 'public');
 
         $document = CaseDocument::create([
             'case_id' => $case->id,

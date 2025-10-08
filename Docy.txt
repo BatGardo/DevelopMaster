@@ -1,0 +1,160 @@
+Docy - DevelopMaster Project Documentation
+=======================================
+
+1. Overview
+-----------
+DevelopMaster is a Laravel 12-based case management and analytics platform tailored for legal/administrative teams. It consolidates case intake, assignment, progress tracking, document storage, and analytical insight into a single application with role-aware access control.
+
+The application ships with a seed dataset of 1,500 Ukrainian-themed cases and offers dashboards, notifications, and regional analytics, plus optional OLAP integration for external activity metrics.
+
+2. Technology Stack
+-------------------
+- Backend: Laravel Framework 12.x, PHP ^8.2
+- Frontend: Vite 6, TailwindCSS 4, custom CSS/JS assets located in `public/assets`
+- Authentication: Laravel Sanctum-style session auth with role-based middleware
+- PDF Export: barryvdh/laravel-dompdf
+- Analytics exports: HTML table rendered as Excel stream via `AnalyticsExcelExporter`
+- Optional: Livewire Flux/Volt packages available for building reactive components
+- Dev Tooling: Vite, Laravel Sail (optional), PestPHP for testing, Laravel Pint for linting
+
+3. Project Structure Highlights
+-------------------------------
+- `app/Http/Controllers`: Main controllers for auth, cases, analytics, notifications, positions
+- `app/Models`: Eloquent models (CaseModel, CaseAction, CaseDocument, User, etc.)
+- `app/Services/Reports`: Export services (PDF, Excel)
+- `app/Support`: Case filtering helpers
+- `resources/views`: Blade templates for layout, cases, analytics, dashboard, notifications
+- `database/migrations`: Schema definitions, including region support on the `cases` table
+- `database/seeders`: Seed logic for roles, positions, and 1,500 demo cases
+- `public/assets`: Prebuilt CSS/JS bundle used in production
+- `config/olap.php`: Settings for optional OLAP data source
+
+4. Roles & Permissions
+----------------------
+The application defines role-based access controls via middleware:
+- `admin`: Full access (dashboard, case index/create/show, positions, analytics)
+- `executor`: Case index/create/show, action/document management, analytics
+- `viewer`: Read-only case access, dashboard slice, notifications
+- `applicant`: Own-case creation & monitoring
+
+Routes are defined in `routes/web.php`, grouped by authentication and role gates. Analytics endpoints additionally require the `view-analytics` ability.
+
+5. Environment Configuration
+-----------------------------
+1. Copy `.env.example` to `.env` and adjust:
+   - `APP_URL`, `APP_ENV`, `APP_KEY`
+   - Database connection (MySQL/PostgreSQL); migration uses standard `cases`, `case_actions`, `case_documents`
+   - Mail settings for notifications (optional)
+   - `OLAP_*` variables if integrating the external OLAP data source (see `config/olap.php`)
+2. Optional OLAP environment file template is provided under `env/olap.env`.
+
+6. Installation & Setup
+-----------------------
+1. Install PHP dependencies:
+   ```
+   composer install
+   ```
+2. Install node dependencies:
+   ```
+   npm install
+   ```
+3. Generate application key (if not already set):
+   ```
+   php artisan key:generate
+   ```
+4. Run migrations:
+   ```
+   php artisan migrate
+   ```
+5. Seed demo data (see Section 7).
+
+7. Database Seeding & Demo Data
+-------------------------------
+The project provides rich seeders:
+- `Database\\Seeders\\UkrainianCaseSeeder`: Truncates case tables and recreates 1,500 demo cases across regions with actions and documents. Run:
+  ```
+  php artisan db:seed --class=UkrainianCaseSeeder
+  ```
+- `Database\\Seeders\\AdditionalUkrainianCasesSeeder`: Adds supplementary cases without truncating existing data. Run:
+  ```
+  php artisan db:seed --class=AdditionalUkrainianCasesSeeder
+  ```
+- `Database\\Seeders\\BackfillCaseRegionsSeeder`: Normalizes/populates the `region` column for existing cases (useful after legacy migrations). Run:
+  ```
+  php artisan db:seed --class=BackfillCaseRegionsSeeder
+  ```
+
+Seeding relies on executor/applicant users; `DatabaseSeeder` creates default roles, generates demo users, posts, and optionally publishes extra cases via the seeders above.
+
+8. Running the Application
+--------------------------
+- **Local development**
+  - Serve backend: `php artisan serve`
+  - Start queues if using async jobs: `php artisan queue:listen`
+  - Vite dev assets: `npm run dev`
+  - Combined workflow: `composer run dev` (uses `concurrently` to launch server, queue listener, and Vite)
+- **Production build**
+  - Compile assets: `npm run build`
+  - Ensure `public/assets/app.css` & `public/assets/app.js` are published (done via post-update scripts)
+  - Cache config/routes when ready: `php artisan optimize`
+
+9. Key Features
+---------------
+- **Dashboard (`/dashboard`)**: Role-aware overview with KPIs, recent cases/actions, optional OLAP charts.
+- **Case Portfolio (`/cases`)**: Filterable table with sorting, region filter, pagination, export to PDF per case.
+- **Case Details (`/cases/{case}`)**: Timeline of actions, document management, executor notes, PDF export.
+- **Analytics Overview (`/analytics`)**: Status distribution, executor load, trend charts, region breakdown (cases, average lead time), seasonality metrics, OLAP activity summary.
+- **Analytics Detail (`/analytics/records`)**: Filtered reports with pagination, action/document summaries, daily trends, export to Excel.
+- **Notifications (`/notifications`)**: Recent actions feed with case meta including region.
+- **Positions Management (`/positions`)**: Admin CRUD for organizational roles.
+
+10. Exports & Reporting
+-----------------------
+- **PDF**: `CasePdfExporter` renders `resources/views/cases/pdf.blade.php` via DomPDF.
+- **Excel**: `AnalyticsExcelExporter` streams an HTML-based spreadsheet for filtered analytics data.
+
+11. Analytics Filters & Regions
+-------------------------------
+- Region data is normalized at save-time (`CaseModel::setRegionAttribute`) and surfaced via `region_label` accessor.
+- Analytics controllers support filtering by status, executor, owner, region, and date range with normalization to Title Case.
+- Region breakdown charts use the normalized region label and include lead-time analytics.
+
+12. Front-end Styling
+---------------------
+- Core layout defined in `resources/views/layouts/app.blade.php` with sticky navbar and gradient background.
+- TailwindCSS can be re-enabled via Vite pipeline; compiled CSS lives in `public/assets/app.css` (also sets `body` background and resets spacing).
+- JavaScript bundle (`public/assets/app.js`) handles any interactive components (currently minimal vanilla script).
+
+13. Testing
+-----------
+- Test runner: Pest (configured in `composer.json`).
+- Execute: `php artisan test`
+  - Note: default configuration expects SQLite PDO driver; install `pdo_sqlite` if running feature tests locally.
+- Linting: `vendor/bin/pint` formats PHP code according to PSR-12.
+
+14. Maintenance & Troubleshooting
+---------------------------------
+- Clear caches: `php artisan optimize:clear`
+- Regenerate autoloads: `composer dump-autoload -o`
+- Seed region data after legacy imports: `php artisan db:seed --class=BackfillCaseRegionsSeeder`
+- Ensure Blade templates are saved without UTF-8 BOM to avoid rendering artifacts (notably the case and analytics views).
+
+15. Deployment Checklist
+------------------------
+1. Configure `.env` (APP_URL, DB, cache, queue, OLAP where applicable).
+2. Run `composer install --no-dev --optimize-autoloader`
+3. Run `php artisan migrate --force`
+4. Seed via `UkrainianCaseSeeder` if demo data needed.
+5. Build assets: `npm ci && npm run build`
+6. Cache config/routes/views: `php artisan optimize`
+7. Ensure queue worker configured for notifications/OLAP tasks if used.
+
+16. Useful Paths
+----------------
+- Layout partials: `resources/views/components/layouts/app`
+- Analytics templates: `resources/views/analytics.blade.php`, `resources/views/analytics/details.blade.php`
+- Case views: `resources/views/cases/*.blade.php`
+- Language strings: `resources/lang/en/statuses.php`, `resources/lang/uk/statuses.php`
+- Seeder templates: `database/seeders/*.php`
+
+For further customization, review controller/service classes under `app/` and adjust Blade templates or Tailwind configuration as needed.
